@@ -6,14 +6,10 @@
 
 Factory functions composition
 
+## Example
+
 ```javascript
 import { mixin, override } from "@dmail/mixin"
-
-const flyTalent = ({ name }) => {
-	return {
-		fly: () => `${name} fly`,
-	}
-}
 
 const walkTalent = ({ name }) => {
 	return {
@@ -21,17 +17,16 @@ const walkTalent = ({ name }) => {
 	}
 }
 
-const logFlyTalent = ({ fly }) => {
+const flyTalent = ({ name }) => {
 	return {
-		fly: override(() => {
-			console.log("fly called")
-			return fly()
-		}),
+		fly: () => `${name} fly`,
 	}
 }
 
-const animal = mixin({ name: "foo" }, walkTalent, flyTalent, logFlyTalent)
+const animal = mixin({ name: "foo" }, walkTalent, flyTalent)
 
-animal.fly()
-// logs "fly called" and return "foo fly"
+animal.walk() // foo walk
+animal.fly() // foo fly
 ```
+
+Check the [API Documentation](./docs/api.md) for more
