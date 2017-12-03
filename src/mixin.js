@@ -49,6 +49,9 @@ const installObjectProperties = (object, otherObject) => {
 		}
 		Object.defineProperty(object, name, Object.getOwnPropertyDescriptor(otherObject, name))
 	})
+	Object.getOwnPropertySymbols(otherObject).forEach(symbol => {
+		Object.defineProperty(object, symbol, Object.getOwnPropertyDescriptor(otherObject, symbol))
+	})
 }
 
 // in case object is created by Object.create(null) it does not have hasOwnProperty
@@ -59,35 +62,46 @@ export const override = value => ({
 	[overrideSymbol]: value,
 })
 
-const installMethods = (object, methods) => {
-	// we should install symbol as well using Object.getOwnSymbols(methods)
-	Object.getOwnPropertyNames(methods).forEach(name => {
-		let value = methods[name]
-		let preventOverride
-		if (hasOwnProperty(value, overrideSymbol)) {
-			value = value[overrideSymbol]
-			preventOverride = false
-		} else {
-			preventOverride = true
+const createConflictMessage = (object, name) => {
+	const convertObjectToString = object => {
+		if (Object.getPrototypeOf(object) === null) {
+			return "[object Object]"
 		}
+		return String(object)
+	}
 
-		if (typeof value !== "function") {
-			throw new Error(
-				`installMethods second argument must be an object with only functions (got ${value} for ${
-					name
-				})`,
-			)
-		}
-		if (preventOverride && hasOwnProperty(object, name)) {
-			const convertObjectToString = object => {
-				if (Object.getPrototypeOf(object) === null) {
-					return "[object Object]"
-				}
-				return String(object)
-			}
-			throw new Error(`${convertObjectToString(object)} has already a property named ${name}`)
-		}
-		defineReadOnlyHiddenProperty(object, name, value)
+	if (typeof name === "symbol") {
+		return `${convertObjectToString(object)} already has symbol ${String(name)}`
+	}
+	return `${convertObjectToString(object)} already has property ${name}`
+}
+
+const installMethod = (object, name, value) => {
+	let preventOverride
+	if (hasOwnProperty(value, overrideSymbol)) {
+		value = value[overrideSymbol]
+		preventOverride = false
+	} else {
+		preventOverride = true
+	}
+
+	if (typeof value !== "function") {
+		throw new Error(
+			`installMethod third argument must be a function (got ${value} for ${String(name)})`,
+		)
+	}
+	if (preventOverride && hasOwnProperty(object, name)) {
+		throw new Error(createConflictMessage(object, name, value))
+	}
+	defineReadOnlyHiddenProperty(object, name, value)
+}
+
+const installMethods = (object, methods) => {
+	Object.getOwnPropertyNames(methods).forEach(name => {
+		installMethod(object, name, methods[name])
+	})
+	Object.getOwnPropertySymbols(methods).forEach(symbol => {
+		installMethod(object, symbol, methods[symbol])
 	})
 }
 
@@ -147,6 +161,20 @@ const defaultCreateRawProduct = () => {
 	return {}
 }
 
+const factorySymbol = Symbol("factory")
+export const isFactoryOf = (factory, value) => {
+	if (value === null) {
+		return false
+	}
+	if (typeof value !== "object" && typeof value !== "function") {
+		return false
+	}
+	if (factorySymbol in value) {
+		return value[factorySymbol]() === factory
+	}
+	return false
+}
+
 export const createFactoryAdvanced = (
 	{ create = defaultCreateRawProduct, refine = () => {}, talents = [] } = {},
 ) => {
@@ -157,7 +185,14 @@ export const createFactoryAdvanced = (
 		} else {
 			createRawProduct = () => replicateObject(product)
 		}
-		return pureMixin(createRawProduct, refine, ...talents)
+		return pureMixin(
+			createRawProduct,
+			() => ({
+				[factorySymbol]: () => createProduct,
+			}),
+			refine,
+			...talents,
+		)
 	}
 	return createProduct
 }

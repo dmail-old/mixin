@@ -4,6 +4,7 @@ import {
 	createFactory,
 	createFactoryWith,
 	createFactoryAdvanced,
+	isFactoryOf,
 } from "./mixin.js"
 import { createTest } from "@dmail/test"
 import {
@@ -183,7 +184,42 @@ export default createTest({
 		return expectThrowWith(
 			() => mixin({ foo: true }, () => ({ foo: () => {} })),
 			matchErrorWith({
-				message: "[object Object] has already a property named foo",
+				message: "[object Object] already has property foo",
+			}),
+		)
+	},
+	"throw when talent return existing anonymous symbol": () => {
+		const anonymousSymbol = Symbol()
+
+		return expectThrowWith(
+			() =>
+				mixin(
+					{
+						[anonymousSymbol]: true,
+					},
+					() => ({
+						[anonymousSymbol]: () => {},
+					}),
+				),
+			matchErrorWith({
+				message: "[object Object] already has symbol Symbol()",
+			}),
+		)
+	},
+	"throw when talent return existing named symbol": () => {
+		const namedSymbol = Symbol("foo")
+		return expectThrowWith(
+			() =>
+				mixin(
+					{
+						[namedSymbol]: true,
+					},
+					() => ({
+						[namedSymbol]: () => {},
+					}),
+				),
+			matchErrorWith({
+				message: `[object Object] already has symbol Symbol(foo)`,
 			}),
 		)
 	},
@@ -193,7 +229,7 @@ export default createTest({
 		return expectThrowWith(
 			() => mixin(object, () => ({ foo: () => {} })),
 			matchErrorWith({
-				message: "[object Object] has already a property named foo",
+				message: "[object Object] already has property foo",
 			}),
 		)
 	},
@@ -218,8 +254,7 @@ export default createTest({
 		return expectThrowWith(
 			() => mixin({}, () => ({ foo: true })),
 			matchErrorWith({
-				message:
-					"installMethods second argument must be an object with only functions (got true for foo)",
+				message: "installMethod third argument must be a function (got true for foo)",
 			}),
 		)
 	},
@@ -240,6 +275,19 @@ export default createTest({
 		return expectChain(
 			() => expectProperties(output, target),
 			() => expectProperties(replicated, target),
+		)
+	},
+	"isFactoryOf()": () => {
+		const factory = createFactory(() => {})
+		const output = factory()
+		const replicat = output.replicate()
+
+		return expectChain(
+			() => expectMatch(isFactoryOf(factory, null), false),
+			() => expectMatch(isFactoryOf(factory, true), false),
+			() => expectMatch(isFactoryOf(factory, {}), false),
+			() => expectMatch(isFactoryOf(factory, output), true),
+			() => expectMatch(isFactoryOf(factory, replicat), true),
 		)
 	},
 	"createFactoryWith(behaviour, talent)": () => {
