@@ -1,6 +1,6 @@
 # api
 
-* [createPureProduct()](./api.md#createpureproduct)
+* [createPureProduct()](./#createpureproduct)
 * [isProduct(value)](./isproductvalue)
 * [mixin(product, ...talents)](./mixinproduct-talents)
 * [hasTalent(talent, product)](./hastalenttalentproduct)
