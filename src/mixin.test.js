@@ -1,178 +1,27 @@
-import {
-	mixin,
-	override,
-	createFactory,
-	createFactoryWith,
-	createFactoryAdvanced,
-	isFactoryOf,
-} from "./mixin.js"
+import { createPureProduct, isProduct, mixin, replicate } from "./mixin.js"
 import { createTest } from "@dmail/test"
 import {
 	expectMatch,
 	matchNot,
 	expectProperties,
-	expectThrow,
 	expectThrowWith,
 	matchErrorWith,
 	expectChain,
-	matchFunction,
-	expectFunction,
 } from "@dmail/expect"
 
-export default createTest({
-	"mixin({ foo: true })": () => {
-		const input = { foo: true }
-		const output = mixin(input)
-		return expectMatch(input, matchNot(output))
+export const test = createTest({
+	"mixin does not mutate product": () => {
+		const pureProduct = createPureProduct()
+		const product = mixin(pureProduct, () => {})
+		return expectMatch(pureProduct, matchNot(product))
 	},
-	"mixin property descriptor preserved": () => {
-		const input = {}
-		const get = () => true
-		Object.defineProperty(input, "foo", {
-			get,
-		})
-		const output = mixin(input)
-		const descriptor = Object.getOwnPropertyDescriptor(output, "foo")
-		return expectProperties(descriptor, Object.getOwnPropertyDescriptor(input, "foo"))
+	"mixin on talent returning null": () => {
+		return expectProperties(mixin(createPureProduct(), () => null), {})
 	},
-	"helpers presence": () => {
-		return expectProperties(mixin({}), {
-			replicate: matchFunction(),
-			valueOf: matchFunction(),
-			lastValueOf: matchFunction(),
-		})
-	},
-	"valueOf() helper": () => {
-		const input = {
-			foo: true,
-		}
-		const product = mixin(
-			input,
-			({ valueOf }) => ({ firstTalentValueOf: valueOf }),
-			({ valueOf }) => ({ middleTalentValueOf: valueOf }),
-			({ valueOf }) => ({ lastTalentValueOf: valueOf }),
-		)
-		return expectChain(
-			() =>
-				expectProperties(product.firstTalentValueOf(), {
-					foo: true,
-					firstTalentValueOf: matchFunction(),
-				}),
-			() => expectMatch(product.firstTalentValueOf(), matchNot(input)),
-			() =>
-				expectProperties(product.middleTalentValueOf(), {
-					foo: true,
-					firstTalentValueOf: matchFunction(),
-					middleTalentValueOf: matchFunction(),
-				}),
-			() => expectMatch(product.middleTalentValueOf(), matchNot(product.firstTalentValueOf())),
-			() =>
-				expectProperties(product.lastTalentValueOf(), {
-					foo: true,
-					firstTalentValueOf: matchFunction(),
-					middleTalentValueOf: matchFunction(),
-					lastTalentValueOf: matchFunction(),
-				}),
-			() => expectMatch(product.lastTalentValueOf(), matchNot(product)),
-		)
-	},
-	"lastValueOf() helper": () => {
-		const input = {
-			foo: true,
-		}
-		const product = mixin(
-			input,
-			({ lastValueOf: firstLastValueOf }) => {
-				const returnValue = firstLastValueOf()
-				return {
-					firstLastValueOf,
-					getEarlyLastValueOfReturnValue: () => returnValue,
-				}
-			},
-			({ lastValueOf: middleLastValueOf }) => ({ middleLastValueOf }),
-			({ lastValueOf: lastLastValueOf }) => ({ lastLastValueOf }),
-		)
-		return expectChain(
-			() => expectMatch(product.firstLastValueOf(), product),
-			() => expectMatch(product.getEarlyLastValueOfReturnValue(), undefined),
-			() => expectMatch(product.middleLastValueOf(), product),
-			() => expectMatch(product.lastLastValueOf(), product),
-		)
-	},
-	"lastValueOf() with multiple mixin call": () => {
-		let product = mixin({}, ({ lastValueOf: firstTalentLastValueOf }) => ({
-			firstTalentLastValueOf,
-		}))
-		product = mixin(product, ({ lastValueOf: lastTalentLastValueOf }) => ({
-			lastTalentLastValueOf,
-		}))
-		return expectChain(
-			() => expectMatch(product.firstTalentLastValueOf(), product),
-			() => expectMatch(product.lastTalentLastValueOf(), product),
-		)
-	},
-	"replicate() scoped per talent": () => {
-		const first = () => {}
-		const second = () => {}
-		const firstTalent = ({ replicate }) => ({
-			firstReplicate: replicate,
-			first,
-		})
-		const secondTalent = ({ replicate }) => ({
-			secondReplicate: replicate,
-			second,
-		})
-		const { firstReplicate, secondReplicate, replicate } = mixin({}, firstTalent, secondTalent)
-
-		return expectChain(
-			() => expectMatch(firstReplicate().first, undefined),
-			() => expectMatch(secondReplicate().first, first),
-			() => expectMatch(secondReplicate().second, undefined),
-			() => expectProperties(replicate(), { first, second }),
-		)
-	},
-	"replicate() helper": () => {
-		const counterTalent = () => {
-			let counter = 0
-			const increment = () => {
-				counter++
-			}
-			const getCounter = () => counter
-			return {
-				increment,
-				getCounter,
-			}
-		}
-		const input = { foo: true }
-		const output = mixin(input, counterTalent)
-		const replicatedOutput = output.replicate()
-		const nestedReplicatedOutput = replicatedOutput.replicate()
-
-		return expectChain(
-			() => expectMatch(output, matchNot(replicatedOutput)),
-			() => expectProperties(replicatedOutput, input),
-			() => expectProperties(nestedReplicatedOutput, input),
-			() => expectMatch(output.lastValueOf(), output),
-			() => expectMatch(replicatedOutput.lastValueOf(), replicatedOutput),
-			() => expectMatch(nestedReplicatedOutput.lastValueOf(), nestedReplicatedOutput),
-			() => expectMatch(output.getCounter(), 0),
-			() => output.increment(),
-			() => expectMatch(output.getCounter(), 1),
-			() => expectMatch(replicatedOutput.getCounter(), 0),
-			() => replicatedOutput.increment(),
-			() => expectMatch(replicatedOutput.getCounter(), 1),
-			() => expectMatch(nestedReplicatedOutput.getCounter(), 0),
-			() => nestedReplicatedOutput.increment(),
-			() => expectMatch(replicatedOutput.getCounter(), 1),
-		)
-	},
-	"talent returning null": () => {
-		return expectProperties(mixin({}, () => null), {})
-	},
-	"talent methods property descriptor": () => {
+	"mixin return product with hidden method returned by talent": () => {
 		const method = () => {}
-		const output = mixin({}, () => ({ method }))
-		const methodDescriptor = Object.getOwnPropertyDescriptor(output, "method")
+		const product = mixin(createPureProduct(), () => ({ method }))
+		const methodDescriptor = Object.getOwnPropertyDescriptor(product, "method")
 		return expectProperties(methodDescriptor, {
 			enumerable: false,
 			configurable: true,
@@ -180,147 +29,90 @@ export default createTest({
 			value: method,
 		})
 	},
-	"throw when talent return existing property": () => {
-		return expectThrowWith(
-			() => mixin({ foo: true }, () => ({ foo: () => {} })),
-			matchErrorWith({
-				message: "[object Object] already has property foo",
-			}),
+	"mixin with talent returning existing property name": () => {
+		const firstMethod = () => {}
+		const secondMethod = () => {}
+		const product = mixin(
+			createPureProduct(),
+			() => ({ foo: firstMethod }),
+			() => ({ foo: secondMethod }),
 		)
+		return expectProperties(product, {
+			foo: secondMethod,
+		})
 	},
-	"throw when talent return existing anonymous symbol": () => {
-		const anonymousSymbol = Symbol()
-
-		return expectThrowWith(
-			() =>
-				mixin(
-					{
-						[anonymousSymbol]: true,
-					},
-					() => ({
-						[anonymousSymbol]: () => {},
-					}),
-				),
-			matchErrorWith({
-				message: "[object Object] already has symbol Symbol()",
-			}),
+	"mixin with talent returning existing property anonymous symbol": () => {
+		const firstMethod = () => {}
+		const secondMethod = () => {}
+		const propertySymbol = Symbol()
+		const product = mixin(
+			createPureProduct(),
+			() => ({ [propertySymbol]: firstMethod }),
+			() => ({ [propertySymbol]: secondMethod }),
 		)
+		return expectProperties(product, {
+			[propertySymbol]: secondMethod,
+		})
 	},
-	"throw when talent return existing named symbol": () => {
-		const namedSymbol = Symbol("foo")
+	// should also be tested with anonymous symbol & named symbol
+	// to check the produced error message
+	"mixin with talent returning something a boolean value for a property": () => {
 		return expectThrowWith(
-			() =>
-				mixin(
-					{
-						[namedSymbol]: true,
-					},
-					() => ({
-						[namedSymbol]: () => {},
-					}),
-				),
-			matchErrorWith({
-				message: `[object Object] already has symbol Symbol(foo)`,
-			}),
-		)
-	},
-	"throw also on existing property on Object.create(null)": () => {
-		const object = Object.create(null)
-		object.foo = true
-		return expectThrowWith(
-			() => mixin(object, () => ({ foo: () => {} })),
-			matchErrorWith({
-				message: "[object Object] already has property foo",
-			}),
-		)
-	},
-	"override allow to redefine an existing method": () => {
-		const foo = () => {}
-		const output = mixin({ foo: true }, () => ({
-			foo: override(foo),
-		}))
-		return expectChain(
-			() => expectMatch(output.foo, foo),
-			// we ensure a given function can serve as override for a first mixin
-			// but still throws for an other miwin (if not wrapped by override)
-			() =>
-				expectThrow(() =>
-					mixin({ foo: true }, () => ({
-						foo,
-					})),
-				),
-		)
-	},
-	"throw when talent return an object with something else than a function": () => {
-		return expectThrowWith(
-			() => mixin({}, () => ({ foo: true })),
+			() => mixin(createPureProduct(), () => ({ foo: true })),
 			matchErrorWith({
 				message: "installMethod third argument must be a function (got true for foo)",
 			}),
 		)
 	},
-	"createFactory(fn)": () => {
-		const createStuff = createFactory(() => {})
-		return expectFunction(createStuff)
+	"isProduct() on createPureProduct()": () => {
+		return expectMatch(isProduct(createPureProduct()), true)
 	},
-	"createFactory(fn) returned function called without argument": () => {
-		const createStuff = createFactory(() => {})
-		const output = createStuff()
-		return expectProperties(output, {})
+	"isProduct() on mixed pure product": () => {
+		return expectMatch(isProduct(mixin(createPureProduct(), () => {})), true)
 	},
-	"createFactory(fn) returned function called with one argument": () => {
-		const createStuff = createFactory(() => {})
-		const target = { foo: true }
-		const output = createStuff(target)
-		const replicated = output.replicate()
-		return expectChain(
-			() => expectProperties(output, target),
-			() => expectProperties(replicated, target),
-		)
+	"isProduct(null)": () => {
+		return expectMatch(isProduct(null), false)
 	},
-	"isFactoryOf()": () => {
-		const factory = createFactory(() => {})
-		const output = factory()
-		const replicat = output.replicate()
-
-		return expectChain(
-			() => expectMatch(isFactoryOf(factory, null), false),
-			() => expectMatch(isFactoryOf(factory, true), false),
-			() => expectMatch(isFactoryOf(factory, {}), false),
-			() => expectMatch(isFactoryOf(factory, output), true),
-			() => expectMatch(isFactoryOf(factory, replicat), true),
-		)
+	"isProduct(undefined)": () => {
+		return expectMatch(isProduct(undefined), false)
 	},
-	"createFactoryWith(behaviour, talent)": () => {
-		const behaviourMethod = () => {}
-		const talentMethod = () => {}
-		const createStuff = createFactoryWith(() => ({ behaviourMethod }), () => ({ talentMethod }))
-		const stuff = createStuff()
-
-		return expectChain(
-			() => expectMatch(stuff.behaviourMethod, behaviourMethod),
-			() => expectMatch(stuff.talentMethod, talentMethod),
-		)
-	},
-	"createFactoryAdvanced with create option": () => {
-		const target = { foo: true }
-		const method = () => {}
-		const createStuff = createFactoryAdvanced({
-			create: () => ({ ...target }),
-			refine: () => ({ method }),
-		})
-		const expectedProperties = {
-			...target,
-			method,
+	// hasTalent must be tested
+	"replicate() a product with many talents": () => {
+		const zeroValueTalent = () => {
+			let value = 0
+			const get = () => value
+			const set = (arg) => {
+				value = arg
+				return arg
+			}
+			return { get, set }
+		}
+		const incrementTalent = ({ get, set }) => {
+			const increment = () => set(get() + 1)
+			return { increment }
 		}
 
+		const pure = createPureProduct()
+		const product = mixin(pure, zeroValueTalent, incrementTalent)
+
 		return expectChain(
-			() => expectProperties(createStuff(), expectedProperties),
-			() => expectProperties(createStuff().replicate(), expectedProperties),
+			() => expectMatch(product.get(), 0),
+			() => expectMatch(product.increment(), 1),
+			() => expectMatch(product.increment(), 2),
+			() => {
+				const clone = replicate(product)
+				return expectChain(
+					() => expectMatch(clone.get(), 0),
+					() => expectMatch(clone.increment(), 1),
+					() => {
+						const subclone = replicate(clone)
+						return expectChain(
+							() => expectMatch(subclone.get(), 0),
+							() => expectMatch(subclone.increment(), 1),
+						)
+					},
+				)
+			},
 		)
-	},
-	"createFactoryAdvanced() can be called without arg": () => {
-		const createStuff = createFactoryAdvanced()
-		const stuff = createStuff()
-		return expectProperties(stuff, {})
 	},
 })

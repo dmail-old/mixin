@@ -1,1 +1,1 @@
-export * from "./src/mixin.js"
+export * from "./src/index.js"
