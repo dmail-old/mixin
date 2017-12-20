@@ -18,7 +18,7 @@ import { createPureProduct } from "@dmail/mixin"
 const pureProduct = createPureProduct()
 ```
 
-[source](../src/mixin#53) | [test](../src/mixin.test.js)
+[source](../src/mixin.js) | [test](../src/mixin.test.js)
 
 ## isProduct(value)
 
@@ -29,6 +29,8 @@ isProduct(null) // false
 isProduct({}) // false
 isProduct(createPureProduct()) // true
 ```
+
+[source](../src/mixin.js) | [test](../src/mixin.test.js)
 
 ## mixin(product, ...talents)
 
@@ -49,6 +51,8 @@ product.getAnswer() // 42
 product.getAnswerOpposite() // -42
 ```
 
+[source](../src/mixin.js) | [test](../src/mixin.test.js)
+
 ## hasTalent(talent, product)
 
 ```javascript
@@ -61,6 +65,8 @@ const talentedProduct = mixin(pureProduct, talent)
 hasTalent(talent, pureProduct) // false
 hasTalent(talent, talentedProduct) // true
 ```
+
+[source](../src/mixin.js) | [test](../src/mixin.test.js)
 
 ## createFactory(fn)
 
@@ -80,6 +86,8 @@ const createCounter = createFactory(({ count = 0 }) => {
 const counter = createCounter()
 ```
 
+[source](../src/factory.js) | [test](../src/factory.test.js)
+
 ## isProducedBy(factory, product)
 
 ```javascript
@@ -93,6 +101,8 @@ const factoryProduct = factory()
 isProducedBy(factory, pureProduct) // false
 isProducedBy(factory, factoryProduct) // true
 ```
+
+[source](../src/factory.js) | [test](../src/factory.test.js)
 
 ## replicate(product)
 
@@ -116,5 +126,7 @@ counter.increment() // 12
 const counterClone = replicate(counter)
 counterClone.increment() // 11
 ```
+
+[source](../src/factory.js) | [test](../src/factory.test.js)
 
 Please note you can also use replicate on product returned by createPureProduct() or mixin()
