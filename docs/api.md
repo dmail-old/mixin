@@ -1,8 +1,8 @@
 # api
 
-* [createPureProduct()](./createpureproduct)
+* [createPureProduct()](createpureproduct)
 * [isProduct(value)](./isproductvalue)
-* [mixin(product, ...talents)](./mixinproducttalents)
+* [mixin(product, ...talents)](./mixinproduct-talents)
 * [hasTalent(talent, product)](./hastalenttalentproduct)
 * [createFactory(fn)](./createfactoryfn)
 * [isProducedBy(factory, value)](./isproducedbyfactoryvalue)
