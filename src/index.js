@@ -1,11 +1,13 @@
 import {
 	isProduct,
-	mixin as optimistMixin,
-	createFactory as optimistCreateFactory,
-	replicate as optimistReplicate,
 	hasTalent as optimistHasTalent,
-	isProducedBy as optimistIsProducedBy,
+	mixin as optimistMixin,
+	replicate as optimistReplicate,
 } from "./mixin.js"
+import {
+	createFactory as optimistCreateFactory,
+	isProducedBy as optimistIsProducedBy,
+} from "./factory.js"
 
 export { isProduct }
 
@@ -17,6 +19,18 @@ export const hasTalent = (firstArg, secondArg) => {
 		throw new TypeError(`hasTalent second arg must be a product`)
 	}
 	return optimistHasTalent(firstArg, secondArg)
+}
+
+export const mixin = (firstArg, ...remainingArgs) => {
+	if (isProduct(firstArg) === false) {
+		throw new TypeError(`mixin first argument must be a product`)
+	}
+	remainingArgs.forEach((arg) => {
+		if (typeof arg !== "function") {
+			throw new TypeError(`mixin args after product must be function`)
+		}
+	})
+	return optimistMixin(firstArg, ...remainingArgs)
 }
 
 export const replicate = (firstArg) => {
@@ -41,16 +55,4 @@ export const isProducedBy = (firstArg, secondArg) => {
 		throw new TypeError(`isProducedBy second arg must be a product`)
 	}
 	return optimistIsProducedBy(firstArg, secondArg)
-}
-
-export const mixin = (firstArg, ...remainingArgs) => {
-	if (isProduct(firstArg) === false) {
-		throw new TypeError(`mixin first argument must be a product`)
-	}
-	remainingArgs.forEach((arg) => {
-		if (typeof arg !== "function") {
-			throw new TypeError(`mixin args after product must be function`)
-		}
-	})
-	return optimistMixin(firstArg, ...remainingArgs)
 }

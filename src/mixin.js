@@ -50,58 +50,13 @@ const talentsSymbol = Symbol.for("talents")
 // en case de rédéfinition de la propriété on peut toujours accéder
 // à lancienne propriété puisqu'elle est définie dans le parent
 // override est inutile du coup
-const createPureProduct = () => {
-	const pureProduct = Object.create(null)
+export const createPureProduct = () => {
+	const pureProduct = {} // should be Object.create(null), for now it's not well supported
 	defineReadOnlyHiddenProperty(pureProduct, talentsSymbol, [])
 	return pureProduct
 }
 
-const noop = () => {}
-const createTalentInstaller = (talent, scope) => {
-	if (typeof talent !== "function") {
-		throw new TypeError(`addTalent second argument must be a function`)
-	}
-
-	const returnValue = talent(scope)
-	if (returnValue === null || returnValue === "object") {
-		return noop
-	}
-	return (product) => installMethods(product, returnValue)
-}
-
-const addTalent = (talent, product) => {
-	const installTalent = createTalentInstaller(talent, product)
-	const talentedProduct = Object.create(product)
-	installTalent(talentedProduct)
-	talentedProduct[talentsSymbol] = [...product[talentsSymbol], talent]
-	return talentedProduct
-}
-
 export const isProduct = (arg) => hasOwnProperty(arg, talentsSymbol)
-
-export const mixin = (product, ...talents) => {
-	return talents.reduce((accumulator, talent) => {
-		return addTalent(talent, accumulator)
-	}, product)
-}
-
-export const createFactory = (talent) => {
-	const pureProduct = createPureProduct()
-	const factory = (...args) => {
-		const parametrizedTalent = () => talent(...args)
-		parametrizedTalent.wrappedTalent = talent
-		return mixin(pureProduct, parametrizedTalent)
-	}
-	factory.wrappedTalent = talent
-	return factory
-}
-
-export const replicate = (product) => {
-	return product[talentsSymbol].reduce(
-		(accumulator, talent) => addTalent(talent, accumulator),
-		createPureProduct(),
-	)
-}
 
 export const hasTalent = (talent, product) => {
 	return product[talentsSymbol].some(
@@ -109,6 +64,25 @@ export const hasTalent = (talent, product) => {
 	)
 }
 
-export const isProducedBy = (factory, product) => {
-	return hasTalent(factory.wrappedTalent, product)
+const addTalent = (talent, product) => {
+	const returnValue = talent(product)
+	const talentedProduct = Object.create(product)
+	defineReadOnlyHiddenProperty(talentedProduct, talentsSymbol, [...product[talentsSymbol], talent])
+	if (returnValue !== null && typeof returnValue === "object") {
+		installMethods(returnValue, talentedProduct)
+	}
+	return talentedProduct
+}
+
+export const mixin = (product, ...talents) => {
+	return talents.reduce((accumulator, talent) => {
+		return addTalent(talent, accumulator)
+	}, product)
+}
+
+export const replicate = (product) => {
+	return product[talentsSymbol].reduce(
+		(accumulator, talent) => addTalent(talent, accumulator),
+		createPureProduct(),
+	)
 }

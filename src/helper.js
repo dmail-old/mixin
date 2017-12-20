@@ -46,14 +46,15 @@ export const canHaveOwnProperty = (value) => {
 
 const installMethod = (object, name, value) => {
 	if (typeof value !== "function") {
+		// do not forget value can be a symbol, that's why there is String(value)
 		throw new Error(
-			`installMethod third argument must be a function (got ${value} for ${String(name)})`,
+			`installMethod third argument must be a function (got ${String(value)} for ${String(name)})`,
 		)
 	}
 	defineReadOnlyHiddenProperty(object, name, value)
 }
 
-export const installMethods = (object, methods) => {
+export const installMethods = (methods, object) => {
 	Object.getOwnPropertyNames(methods).forEach((name) => {
 		installMethod(object, name, methods[name])
 	})
