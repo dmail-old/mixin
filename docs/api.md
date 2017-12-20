@@ -1,12 +1,12 @@
 # api
 
 * [createPureProduct()](#createpureproduct)
-* [isProduct(value)](./isproductvalue)
-* [mixin(product, ...talents)](./mixinproduct-talents)
-* [hasTalent(talent, product)](./hastalenttalentproduct)
-* [createFactory(fn)](./createfactoryfn)
-* [isProducedBy(factory, value)](./isproducedbyfactoryvalue)
-* [replicate(product)](./replicateproduct)
+* [isProduct(value)](#isproductvalue)
+* [mixin(product, ...talents)](#mixinproduct-talents)
+* [hasTalent(talent, product)](#hastalenttalent-product)
+* [createFactory(fn)](#createfactoryfn)
+* [isProducedBy(factory, value)](#isproducedbyfactory-value)
+* [replicate(product)](#replicateproduct)
 
 ## createPureProduct()
 
