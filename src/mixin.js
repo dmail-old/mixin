@@ -4,203 +4,111 @@ talent, trait, mixin, stampit
 // https://gist.github.com/petsel/7677638
 */
 
-const defineReadOnlyHiddenProperty = (object, name, value) => {
-	Object.defineProperty(object, name, {
-		configurable: true,
-		enumerable: false,
-		writable: false,
-		value,
-	})
+import { installMethods, hasOwnProperty, defineReadOnlyHiddenProperty } from "./helper.js"
+
+// this is an helper to get the value from which destructured methods come from
+// without it, you cannot use param destructuring and get the destructured object at the same time
+// it may disappear in favor of somehting more explicit such as
+// replacing test(valueOf()) by test({ foo, bar})
+// const valueOfName = "valueOf"
+// const installValueOfHelper = (object) => {
+// 	const valueOf = () => object
+// 	Object.defineProperty(object, valueOfName, {
+// 		configurable: true,
+// 		value: valueOf,
+// 	})
+// }
+
+// // gives a pointer to the object having the exported functions as well
+// // may disappear too in case it's not that usefull
+// const lastValueOfName = "lastValueOf"
+// const installLastValueOfHelper = (object) => {
+// 	let lastValue = object
+// 	const lastValueOf = () => lastValue
+
+// 	const currentLastValueOf = object[lastValueOfName]
+// 	if (currentLastValueOf) {
+// 		currentLastValueOf.override(lastValue)
+// 		defineReadOnlyHiddenProperty(object, lastValueOfName, currentLastValueOf)
+// 	} else {
+// 		lastValueOf.override = (value) => {
+// 			lastValue = value
+// 		}
+// 		defineReadOnlyHiddenProperty(object, lastValueOfName, lastValueOf)
+// 	}
+// }
+
+const talentsSymbol = Symbol.for("talents")
+
+// chaque produit peut n'avoir qu'un seul talent puisqu'on
+// ne mutate rien, chaque valeur pourrait donc avoir un symbol talent qui ne soit pas un tableau
+// mais juste le talent lui même
+// comme chaque produit est lié par prototype au précédent
+// hasTalent pourrait utiliser Object.getPrototypeOf() pour voir si
+// un des prototype parent possède ce talent
+// précisons que cette implémentation a un avantage majeur:
+// en case de rédéfinition de la propriété on peut toujours accéder
+// à lancienne propriété puisqu'elle est définie dans le parent
+// override est inutile du coup
+const createPureProduct = () => {
+	const pureProduct = Object.create(null)
+	defineReadOnlyHiddenProperty(pureProduct, talentsSymbol, [])
+	return pureProduct
 }
 
-const valueOfName = "valueOf"
-const installValueOfHelper = object => {
-	// this is an helper to get the value from which destructured methods come from
-	// without it, you cannot use param destructuring and get the destructured object at the same time
-	// with it you can do the following
-	// const target = {}
-	// mixin(target, ({ valueOf }) => { valueOfEqualsTarget: () => valueOf() === target } )
-	const valueOf = () => object
-	Object.defineProperty(object, valueOfName, {
-		configurable: true,
-		value: valueOf,
-	})
-}
-
-const lastValueOfName = "lastValueOf"
-const installLastValueOfHelper = (object, lastValueOfGetter) => {
-	const currentLastValueOf = object[lastValueOfName]
-	if (currentLastValueOf) {
-		currentLastValueOf.overrideGetter(lastValueOfGetter)
-		defineReadOnlyHiddenProperty(object, lastValueOfName, currentLastValueOf)
-	} else {
-		const lastValueOf = () => lastValueOfGetter()
-		lastValueOf.overrideGetter = getter => {
-			lastValueOfGetter = getter
-		}
-		defineReadOnlyHiddenProperty(object, lastValueOfName, lastValueOf)
-	}
-}
-
-const installObjectProperties = (object, otherObject) => {
-	Object.getOwnPropertyNames(otherObject).forEach(name => {
-		if (name === valueOfName) {
-			return
-		}
-		Object.defineProperty(object, name, Object.getOwnPropertyDescriptor(otherObject, name))
-	})
-	Object.getOwnPropertySymbols(otherObject).forEach(symbol => {
-		Object.defineProperty(object, symbol, Object.getOwnPropertyDescriptor(otherObject, symbol))
-	})
-}
-
-// in case object is created by Object.create(null) it does not have hasOwnProperty
-const hasOwnProperty = (object, name) => Object.prototype.hasOwnProperty.call(object, name)
-
-const overrideSymbol = Symbol()
-export const override = value => ({
-	[overrideSymbol]: value,
-})
-
-const createConflictMessage = (object, name) => {
-	const convertObjectToString = object => {
-		if (Object.getPrototypeOf(object) === null) {
-			return "[object Object]"
-		}
-		return String(object)
+const noop = () => {}
+const createTalentInstaller = (talent, scope) => {
+	if (typeof talent !== "function") {
+		throw new TypeError(`addTalent second argument must be a function`)
 	}
 
-	if (typeof name === "symbol") {
-		return `${convertObjectToString(object)} already has symbol ${String(name)}`
+	const returnValue = talent(scope)
+	if (returnValue === null || returnValue === "object") {
+		return noop
 	}
-	return `${convertObjectToString(object)} already has property ${name}`
+	return (product) => installMethods(product, returnValue)
 }
 
-const installMethod = (object, name, value) => {
-	let preventOverride
-	if (hasOwnProperty(value, overrideSymbol)) {
-		value = value[overrideSymbol]
-		preventOverride = false
-	} else {
-		preventOverride = true
+const addTalent = (talent, product) => {
+	const installTalent = createTalentInstaller(talent, product)
+	const talentedProduct = Object.create(product)
+	installTalent(talentedProduct)
+	talentedProduct[talentsSymbol] = [...product[talentsSymbol], talent]
+	return talentedProduct
+}
+
+export const isProduct = (arg) => hasOwnProperty(arg, talentsSymbol)
+
+export const mixin = (product, ...talents) => {
+	return talents.reduce((accumulator, talent) => {
+		return addTalent(talent, accumulator)
+	}, product)
+}
+
+export const createFactory = (talent) => {
+	const pureProduct = createPureProduct()
+	const factory = (...args) => {
+		const parametrizedTalent = () => talent(...args)
+		parametrizedTalent.wrappedTalent = talent
+		return mixin(pureProduct, parametrizedTalent)
 	}
-
-	if (typeof value !== "function") {
-		throw new Error(
-			`installMethod third argument must be a function (got ${value} for ${String(name)})`,
-		)
-	}
-	if (preventOverride && hasOwnProperty(object, name)) {
-		throw new Error(createConflictMessage(object, name, value))
-	}
-	defineReadOnlyHiddenProperty(object, name, value)
+	factory.wrappedTalent = talent
+	return factory
 }
 
-const installMethods = (object, methods) => {
-	Object.getOwnPropertyNames(methods).forEach(name => {
-		installMethod(object, name, methods[name])
-	})
-	Object.getOwnPropertySymbols(methods).forEach(symbol => {
-		installMethod(object, symbol, methods[symbol])
-	})
+export const replicate = (product) => {
+	return product[talentsSymbol].reduce(
+		(accumulator, talent) => addTalent(talent, accumulator),
+		createPureProduct(),
+	)
 }
 
-const replicateName = "replicate"
-const createEmpty = object => {
-	return Object.create(Object.getPrototypeOf(object))
-}
-const createClone = object => {
-	const objectClone = createEmpty(object)
-	installObjectProperties(objectClone, object)
-	return objectClone
-}
-export const replicateObject = object => {
-	return hasOwnProperty(object, replicateName) ? object[replicateName]() : createClone(object)
+export const hasTalent = (talent, product) => {
+	return product[talentsSymbol].some(
+		(productTalent) => talent === productTalent || talent === productTalent.wrappedTalent,
+	)
 }
 
-export const pureMixin = (createRawProduct, ...fns) => {
-	let lastValueOf
-	// rename getFinalProduct, getProcessedProduct ?
-	// j'aime pas trop l'idée d'avoir une méthode aussi longue
-	// j'aimerais bien un nom pour le produit de base "rawProduct"
-	// chaque produit intermédiaire "processedProduct"
-	// et le produit final "finalProduct"
-	// mais chaque processedProduct est possiblement un finalProduct selon
-	// d'ou on se place
-	const lastValueOfGetter = () => lastValueOf
-
-	const iterate = (product, index) => {
-		installValueOfHelper(product)
-		// we could have a nextValueOf() helper, would it be useful?
-		installLastValueOfHelper(product, lastValueOfGetter)
-		const replicate = () => {
-			const productClone = pureMixin(createRawProduct, ...fns.slice(0, index))
-			defineReadOnlyHiddenProperty(productClone, replicateName, replicate)
-			return productClone
-		}
-		defineReadOnlyHiddenProperty(product, replicateName, replicate)
-
-		if (index === fns.length) {
-			return product
-		}
-		const fn = fns[index]
-		const returnValue = fn(product)
-		if (typeof returnValue === "object" && returnValue !== null) {
-			installMethods(product, returnValue)
-		}
-		return iterate(createClone(product), index + 1)
-	}
-
-	lastValueOf = iterate(createRawProduct(), 0)
-	return lastValueOf
+export const isProducedBy = (factory, product) => {
+	return hasTalent(factory.wrappedTalent, product)
 }
-
-export const mixin = (object, ...fns) => pureMixin(() => replicateObject(object), ...fns)
-
-const defaultCreateRawProduct = () => {
-	return {}
-}
-
-const factorySymbol = Symbol("factory")
-export const isFactoryOf = (factory, value) => {
-	if (value === null) {
-		return false
-	}
-	if (typeof value !== "object" && typeof value !== "function") {
-		return false
-	}
-	if (factorySymbol in value) {
-		return value[factorySymbol]() === factory
-	}
-	return false
-}
-
-export const createFactoryAdvanced = (
-	{ create = defaultCreateRawProduct, refine = () => {}, talents = [] } = {},
-) => {
-	const createProduct = product => {
-		let createRawProduct
-		if (product === undefined) {
-			createRawProduct = create
-		} else {
-			createRawProduct = () => replicateObject(product)
-		}
-		return pureMixin(
-			createRawProduct,
-			() => ({
-				[factorySymbol]: () => createProduct,
-			}),
-			refine,
-			...talents,
-		)
-	}
-	return createProduct
-}
-
-export const createFactory = behaviour => createFactoryAdvanced({ refine: behaviour })
-
-export const createFactoryWith = (behaviour, ...talents) =>
-	createFactoryAdvanced({
-		refine: behaviour,
-		talents,
-	})
