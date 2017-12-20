@@ -70,6 +70,12 @@ export const test = createTest({
 	"isProduct() on mixed pure product": () => {
 		return expectMatch(isProduct(mixin(createPureProduct(), () => {})), true)
 	},
+	"isProduct(null)": () => {
+		return expectMatch(isProduct(null), false)
+	},
+	"isProduct(undefined)": () => {
+		return expectMatch(isProduct(undefined), false)
+	},
 	// hasTalent must be tested
 	"replicate() a product with many talents": () => {
 		const zeroValueTalent = () => {

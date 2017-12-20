@@ -9,21 +9,26 @@ Factory functions composition
 ## Example
 
 ```javascript
-import { mixin, override } from "@dmail/mixin"
+import { createFactory, mixin } from "@dmail/mixin"
 
-const walkTalent = ({ name }) => {
+const walkTalent = ({ getName }) => {
 	return {
-		walk: () => `${name} walk`,
+		walk: () => `${getName()} walk`,
 	}
 }
 
-const flyTalent = ({ name }) => {
+const flyTalent = ({ getName }) => {
 	return {
-		fly: () => `${name} fly`,
+		fly: () => `${getName()} fly`,
 	}
 }
 
-const animal = mixin({ name: "foo" }, walkTalent, flyTalent)
+const createAnimal = createFactory(({ name }) => {
+	const getName = () => name
+	return { getName }
+})
+
+const animal = mixin(createAnimal({ name: "foo" }), walkTalent, flyTalent)
 
 animal.walk() // foo walk
 animal.fly() // foo fly

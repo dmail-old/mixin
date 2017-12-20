@@ -1,5 +1,6 @@
 import {
 	isProduct,
+	createPureProduct,
 	hasTalent as optimistHasTalent,
 	mixin as optimistMixin,
 	replicate as optimistReplicate,
@@ -9,7 +10,7 @@ import {
 	isProducedBy as optimistIsProducedBy,
 } from "./factory.js"
 
-export { isProduct }
+export { isProduct, createPureProduct }
 
 export const hasTalent = (firstArg, secondArg) => {
 	if (typeof firstArg !== "function") {
