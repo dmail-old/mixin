@@ -4,34 +4,34 @@
 [![build](https://travis-ci.org/dmail/mixin.svg?branch=master)](http://travis-ci.org/dmail/mixin)
 [![codecov](https://codecov.io/gh/dmail/mixin/branch/master/graph/badge.svg)](https://codecov.io/gh/dmail/mixin)
 
-Factory functions composition
+Object composition helpers
 
 ## Example
 
 ```javascript
-import { createFactory, mixin } from "@dmail/mixin"
+import { mixin, pure } from "@dmail/mixin"
 
-const walkTalent = ({ getName }) => {
+const walkTalent = ({ name }) => {
 	return {
-		walk: () => `${getName()} walk`,
+		walk: () => `${name} walk`,
 	}
 }
 
-const flyTalent = ({ getName }) => {
+const flyTalent = ({ name }) => {
 	return {
-		fly: () => `${getName()} fly`,
+		fly: () => `${name} fly`,
 	}
 }
 
-const createAnimal = createFactory(({ name }) => {
-	const getName = () => name
-	return { getName }
-})
+const dog = mixin(pure, () => ({ name: "dog" }), walkTalent)
+const duck = mixin(pure, () => ({ name: "duck" }), walkTalent, flyTalent)
 
-const animal = mixin(createAnimal({ name: "foo" }), walkTalent, flyTalent)
+dog.walk() // dog walk
+dog.fly // undefined
 
-animal.walk() // foo walk
-animal.fly() // foo fly
+duck.walk() // duck walk
+duck.fly() // duck fly
 ```
 
-Check the [API Documentation](./docs/api.md) for more
+* [API documentation](./docs/api.md)
+* [Talent documentation](./docs/talent.md)

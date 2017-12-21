@@ -1,42 +1,37 @@
-import { createPureProduct, isProduct, mixin, replicate } from "./mixin.js"
+import { pure, isProduct, mixin, replicate, hasTalent } from "./mixin.js"
 import { createTest } from "@dmail/test"
-import {
-	expectMatch,
-	matchNot,
-	expectProperties,
-	expectThrowWith,
-	matchErrorWith,
-	expectChain,
-} from "@dmail/expect"
+import { expectMatch, matchNot, expectProperties, expectChain } from "@dmail/expect"
 
 export const test = createTest({
-	"mixin does not mutate product": () => {
-		const pureProduct = createPureProduct()
-		const product = mixin(pureProduct, () => {})
-		return expectMatch(pureProduct, matchNot(product))
+	"pure is a non extensible obect": () => {
+		return expectMatch(Object.isExtensible(pure), false)
 	},
-	"mixin on talent returning null": () => {
-		return expectProperties(mixin(createPureProduct(), () => null), {})
+	"mixin returns a new product": () => {
+		const product = mixin(pure, () => {})
+		return expectMatch(pure, matchNot(product))
 	},
-	"mixin return product with hidden method returned by talent": () => {
+	"mixin return a non extensible object": () => {
+		const product = mixin(pure, () => {})
+		return expectMatch(Object.isExtensible(product), false)
+	},
+	"mixin return product with frozen property returned by talent": () => {
 		const method = () => {}
-		const product = mixin(createPureProduct(), () => ({ method }))
+		const product = mixin(pure, () => ({ method }))
 		const methodDescriptor = Object.getOwnPropertyDescriptor(product, "method")
 		return expectProperties(methodDescriptor, {
 			enumerable: false,
-			configurable: true,
+			configurable: false,
 			writable: false,
 			value: method,
 		})
 	},
+	"mixin on talent returning null": () => {
+		return expectProperties(mixin(pure, () => null), {})
+	},
 	"mixin with talent returning existing property name": () => {
 		const firstMethod = () => {}
 		const secondMethod = () => {}
-		const product = mixin(
-			createPureProduct(),
-			() => ({ foo: firstMethod }),
-			() => ({ foo: secondMethod }),
-		)
+		const product = mixin(pure, () => ({ foo: firstMethod }), () => ({ foo: secondMethod }))
 		return expectProperties(product, {
 			foo: secondMethod,
 		})
@@ -46,7 +41,7 @@ export const test = createTest({
 		const secondMethod = () => {}
 		const propertySymbol = Symbol()
 		const product = mixin(
-			createPureProduct(),
+			pure,
 			() => ({ [propertySymbol]: firstMethod }),
 			() => ({ [propertySymbol]: secondMethod }),
 		)
@@ -57,18 +52,13 @@ export const test = createTest({
 	// should also be tested with anonymous symbol & named symbol
 	// to check the produced error message
 	"mixin with talent returning something a boolean value for a property": () => {
-		return expectThrowWith(
-			() => mixin(createPureProduct(), () => ({ foo: true })),
-			matchErrorWith({
-				message: "installMethod third argument must be a function (got true for foo)",
-			}),
-		)
+		return expectProperties(mixin(pure, () => ({ foo: true })), { foo: true })
 	},
-	"isProduct() on createPureProduct()": () => {
-		return expectMatch(isProduct(createPureProduct()), true)
+	"isProduct() on pure": () => {
+		return expectMatch(isProduct(pure), true)
 	},
 	"isProduct() on mixed pure product": () => {
-		return expectMatch(isProduct(mixin(createPureProduct(), () => {})), true)
+		return expectMatch(isProduct(mixin(pure, () => {})), true)
 	},
 	"isProduct(null)": () => {
 		return expectMatch(isProduct(null), false)
@@ -76,7 +66,20 @@ export const test = createTest({
 	"isProduct(undefined)": () => {
 		return expectMatch(isProduct(undefined), false)
 	},
-	// hasTalent must be tested
+	"hasTalent()": () => {
+		const talent = () => {}
+
+		return expectChain(
+			() => expectMatch(hasTalent(talent, pure), false),
+			() => expectMatch(hasTalent(talent, mixin(pure, talent)), true),
+			() => expectMatch(hasTalent(talent, mixin(pure, talent, () => {})), true),
+		)
+	},
+	"valueOf()": () => {
+		const talent = ({ valueOf }) => ({ self: valueOf() })
+		const product = mixin(pure, talent)
+		return expectMatch(product.self, product)
+	},
 	"replicate() a product with many talents": () => {
 		const zeroValueTalent = () => {
 			let value = 0
@@ -92,7 +95,6 @@ export const test = createTest({
 			return { increment }
 		}
 
-		const pure = createPureProduct()
 		const product = mixin(pure, zeroValueTalent, incrementTalent)
 
 		return expectChain(
