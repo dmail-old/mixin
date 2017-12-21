@@ -1,6 +1,6 @@
 # api
 
-* [createPureProduct()](#createpureproduct)
+* [pure](#pure)
 * [isProduct(value)](#isproductvalue)
 * [mixin(product, ...talents)](#mixinproduct-talents)
 * [hasTalent(talent, product)](#hastalenttalent-product)
@@ -8,14 +8,12 @@
 * [isProducedBy(factory, value)](#isproducedbyfactory-value)
 * [replicate(product)](#replicateproduct)
 
-## createPureProduct()
+## pure
 
-Returns a product without any talent (see this as an empty object).
+An object without any talent
 
 ```javascript
-import { createPureProduct } from "@dmail/mixin"
-
-const pureProduct = createPureProduct()
+import { pure } from "@dmail/mixin"
 ```
 
 [source](../src/mixin.js) | [test](../src/mixin.test.js)
@@ -23,11 +21,11 @@ const pureProduct = createPureProduct()
 ## isProduct(value)
 
 ```javascript
-import { isProduct, createPureProduct } from "@dmail/mixin"
+import { isProduct, pure } from "@dmail/mixin"
 
 isProduct(null) // false
 isProduct({}) // false
-isProduct(createPureProduct()) // true
+isProduct(pure) // true
 ```
 
 [source](../src/mixin.js) | [test](../src/mixin.test.js)
@@ -35,17 +33,13 @@ isProduct(createPureProduct()) // true
 ## mixin(product, ...talents)
 
 ```javascript
-import { createPureProduct, mixin } from "@dmail/mixin"
+import { pure, mixin } from "@dmail/mixin"
 
-const product = mixin(
-	createPureProduct(),
-	() => {
-		return { getAnswer: () => 42 }
-	},
-	({ getAnswer }) => {
-		return { getAnswerOpposite: () => getAnswer() * -1 }
-	},
-)
+const answerToEverythingTalent = () => ({ getAnswer: () => 42 })
+const oppositeAnswerTalent = ({ getAnswer }) => ({ getAnswerOpposite: () => getAnswer() * -1 })
+
+const intermediateProduct = mixin(pure, answerToEverythingTalent)
+const product = mixin(intermediateProduct, oppositeAnswerTalent)
 
 product.getAnswer() // 42
 product.getAnswerOpposite() // -42
@@ -56,34 +50,35 @@ product.getAnswerOpposite() // -42
 ## hasTalent(talent, product)
 
 ```javascript
-import { createPureProduct, mixin, hasTalent } from "@dmail/mixin"
+import { pure, mixin, hasTalent } from "@dmail/mixin"
 
-const pureProduct = createPureProduct()
 const talent = () => null
-const talentedProduct = mixin(pureProduct, talent)
+const talentedProduct = mixin(pure, talent)
 
-hasTalent(talent, pureProduct) // false
+hasTalent(talent, pure) // false
 hasTalent(talent, talentedProduct) // true
 ```
 
 [source](../src/mixin.js) | [test](../src/mixin.test.js)
 
-## createFactory(fn)
+## createFactory(talent)
+
+Returns a function which, when called, will return a talented product
 
 ```javascript
 import { createFactory } from "@dmail/mixin"
 
 const createCounter = createFactory(({ count = 0 }) => {
-	const get = () => count
 	const increment = () => {
 		count++
 		return count
 	}
 
-	return { get, increment }
+	return { increment }
 })
 
-const counter = createCounter()
+const counter = createCounter({ count: 1 })
+counter.increment() // 2
 ```
 
 [source](../src/factory.js) | [test](../src/factory.test.js)
@@ -91,14 +86,12 @@ const counter = createCounter()
 ## isProducedBy(factory, product)
 
 ```javascript
-import { createFactory, createPureProduct } from "@dmail/mixin"
+import { createFactory, pure } from "@dmail/mixin"
 
 const factory = createFactory()
-
-const pureProduct = createPureProduct()
 const factoryProduct = factory()
 
-isProducedBy(factory, pureProduct) // false
+isProducedBy(factory, pure) // false
 isProducedBy(factory, factoryProduct) // true
 ```
 
@@ -127,6 +120,27 @@ const counterClone = replicate(counter)
 counterClone.increment() // 11
 ```
 
-[source](../src/factory.js) | [test](../src/factory.test.js)
+[source](../src/mixin.js) | [test](../src/mixin.test.js)
 
-Please note you can also use replicate on product returned by createPureProduct() or mixin()
+### Replicate expect talents to be pure functions
+
+To replicate a product, replicate will reuse talents.
+Consequently if some talent functions behaves differently when reused, the resulting product will inherit thoose differences.
+
+#### Unpure talent example
+
+```javascript
+import { miwin, pure, replicate } from "@dmail/mixin"
+
+const properties = {}
+const unpureTalent = () => properties
+
+const productModel = mixin(pure, unpureTalent)
+properties.foo = true // mutate talent return value
+const productCopy = replicate(productModel)
+
+productModel.foo // undefined
+productCopy.foo // true
+```
+
+Because of the mutation `productCopy` is not equivalent to `productModel`
