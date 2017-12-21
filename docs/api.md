@@ -4,8 +4,8 @@
 * [isProduct(value)](#isproductvalue)
 * [mixin(product, ...talents)](#mixinproduct-talents)
 * [hasTalent(talent, product)](#hastalenttalent-product)
-* [createFactory(fn)](#createfactoryfn)
-* [isProducedBy(factory, value)](#isproducedbyfactory-value)
+* [createFactory(talent)](#createfactorytalent)
+* [isProducedBy(factory, product)](#isproducedbyfactory-product)
 * [replicate(product)](#replicateproduct)
 
 ## pure
@@ -33,7 +33,7 @@ isProduct(pure) // true
 ## mixin(product, ...talents)
 
 ```javascript
-import { pure, mixin } from "@dmail/mixin"
+import { mixin, pure } from "@dmail/mixin"
 
 const answerToEverythingTalent = () => ({ getAnswer: () => 42 })
 const oppositeAnswerTalent = ({ getAnswer }) => ({ getAnswerOpposite: () => getAnswer() * -1 })
@@ -50,7 +50,7 @@ product.getAnswerOpposite() // -42
 ## hasTalent(talent, product)
 
 ```javascript
-import { pure, mixin, hasTalent } from "@dmail/mixin"
+import { mixin, pure, hasTalent } from "@dmail/mixin"
 
 const talent = () => null
 const talentedProduct = mixin(pure, talent)
@@ -86,7 +86,7 @@ counter.increment() // 2
 ## isProducedBy(factory, product)
 
 ```javascript
-import { createFactory, pure } from "@dmail/mixin"
+import { isProducedBy, createFactory, pure } from "@dmail/mixin"
 
 const factory = createFactory()
 const factoryProduct = factory()
