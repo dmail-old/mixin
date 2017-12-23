@@ -16,30 +16,63 @@ const createPureProduct = () => {
 	return pureProduct
 }
 
-export const pure = createPureProduct()
+const getModel = (product) => Object.getPrototypeOf(product)
 
 export const isProduct = (arg) => hasOwnProperty(arg, talentSymbol)
 
-const getModel = (product) => Object.getPrototypeOf(product)
-
-const findModel = (product, predicate) => {
-	let model = getModel(product)
-	while (model) {
-		if (predicate(model)) {
-			return model
-		}
-		model = getModel(model)
+const createSelfAndModelIterable = (product) => {
+	const products = []
+	while (isProduct(product)) {
+		products.push(product)
+		product = getModel(product)
 	}
-	return null
+	return products
 }
 
-const hasOwnTalent = (talent, product) => product[talentSymbol] === talent
+export const getTalent = (product) => product[talentSymbol]
+
+export const pure = createPureProduct()
+
+export const someSelfOrModel = (product, predicate) => {
+	for (const selfOrModel of createSelfAndModelIterable(product)) {
+		if (predicate(selfOrModel)) {
+			return true
+		}
+	}
+	return false
+}
+
+export const wrapTalent = (talent, map) => {
+	map.wrappedTalent = talent
+	return map
+}
+
+export const isHighOrderTalent = (value) => {
+	return typeof value === "function" && hasOwnProperty(value, "wrappedTalent")
+}
+
+export const unwrapTalent = (talent) => {
+	return hasOwnProperty(talent, "wrappedTalent") ? talent.wrappedTalent : null
+}
+
+export const unwrapTalentDeep = (talent) => {
+	let unwrappedTalent = talent
+	let unwrapped
+	while ((unwrapped = unwrapTalent(unwrappedTalent))) {
+		unwrappedTalent = unwrapped
+	}
+	return unwrappedTalent
+}
+
+// export const hasOwnTalent = (talent, product) => {
+// 	return isProduct(product) && unwrapDeep(getTalent(product)) === unwrapDeep(talent)
+// }
 
 export const hasTalent = (talent, product) => {
-	if (hasOwnTalent(talent, product)) {
-		return true
-	}
-	return Boolean(findModel(product, (model) => hasOwnTalent(talent, model)))
+	const unwrappedTalent = unwrapTalentDeep(talent)
+	return someSelfOrModel(product, (selfOrModel) => {
+		return unwrapTalentDeep(getTalent(selfOrModel)) === unwrappedTalent
+	})
 }
 
 const addTalent = (talent, product) => {
@@ -55,22 +88,18 @@ const addTalent = (talent, product) => {
 }
 
 export const mixin = (product, ...talents) => {
-	return talents.reduce((accumulator, talent) => {
-		return addTalent(talent, accumulator)
-	}, product)
+	return talents.reduce((accumulator, talent) => addTalent(talent, accumulator), product)
 }
 
-export const replicate = (product) => {
+const getTalents = (product) => {
 	const talents = []
-	const unshiftTalent = (product) => {
-		const talent = product[talentSymbol]
+	for (const selfOrModel of createSelfAndModelIterable(product)) {
+		const talent = getTalent(selfOrModel)
 		if (talent) {
 			talents.unshift(talent)
 		}
 	}
-
-	unshiftTalent(product)
-	findModel(product, unshiftTalent)
-
-	return mixin(pure, ...talents)
+	return talents
 }
+
+export const replicate = (product) => mixin(pure, ...getTalents(product))

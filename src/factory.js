@@ -1,24 +1,20 @@
-import { pure, mixin, hasTalent } from "./mixin.js"
+import { mixin, wrapTalent, someSelfOrModel, unwrapTalent, getTalent } from "./mixin.js"
 
-export const createFactory = (talent) => {
-	const factory = (...args) => {
-		const { length } = args
-		if (length === 0) {
-			return mixin(pure, talent)
-		}
-		if (length === 1) {
-			const [arg] = args
-			if (typeof arg !== "object") {
-				throw new TypeError(`factory first argument must be an object`)
-			}
-			return mixin(pure, () => arg, talent)
-		}
-		throw new Error(`factory must be called with 1 or zero argument`)
+export const createFactory = (product, talent) => {
+	const factorized = (...args) => {
+		const parameterized = () => talent(...args)
+		return mixin(product, wrapTalent(factorized, parameterized))
 	}
-	factory.wrappedTalent = talent
-	return factory
+	return wrapTalent(talent, factorized)
 }
 
-export const isProducedBy = (factory, product) => {
-	return hasTalent(factory.wrappedTalent, product)
+// en fait lorsque le talent est installé sur product
+// product se retrouve avec un talent parameterized qui lui même est factorized
+// pour savoir si un produit provient d'une factory
+// on peut alors unwrap le produit de 1 et vérifier qu'on retrouve bien factory
+// mais attention il manque le fait que le produit peut avori été modifié
+// il faut aussi vérifier que niv de produit comme le ferai un hasTalent
+// pour chaque parent vérifier si le talent unwrap 1fois est bien la factory
+export const isProductOf = (factory, product) => {
+	return someSelfOrModel(product, (selfOrModel) => unwrapTalent(getTalent(selfOrModel)) === factory)
 }

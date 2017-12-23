@@ -1,4 +1,14 @@
-import { pure, isProduct, mixin, replicate, hasTalent } from "./mixin.js"
+import {
+	pure,
+	isProduct,
+	mixin,
+	replicate,
+	hasTalent,
+	wrapTalent,
+	unwrapTalent,
+	unwrapTalentDeep,
+	isHighOrderTalent,
+} from "./mixin.js"
 import { createTest } from "@dmail/test"
 import { expectMatch, matchNot, expectProperties, expectChain } from "@dmail/expect"
 
@@ -70,6 +80,9 @@ export const test = createTest({
 		const talent = () => {}
 
 		return expectChain(
+			() => expectMatch(hasTalent(talent, null), false),
+			() => expectMatch(hasTalent(talent, undefined), false),
+			() => expectMatch(hasTalent(talent, {}), false),
 			() => expectMatch(hasTalent(talent, pure), false),
 			() => expectMatch(hasTalent(talent, mixin(pure, talent)), true),
 			() => expectMatch(hasTalent(talent, mixin(pure, talent, () => {})), true),
@@ -115,6 +128,25 @@ export const test = createTest({
 					},
 				)
 			},
+		)
+	},
+	"wrapTalent()": () => {
+		const value = {}
+		const talent = () => ({ value })
+		const wrappedTalent = wrapTalent(talent, () => talent())
+		return expectMatch(mixin(pure, wrappedTalent).value, value)
+	},
+	"talent wrapping and unwrapping": () => {
+		const talent = () => {}
+		const wrappedTalent = wrapTalent(talent, () => {})
+		const deeplyWrappedTalent = wrapTalent(wrappedTalent, () => {})
+		return expectChain(
+			() => expectMatch(isHighOrderTalent(talent), false),
+			() => expectMatch(isHighOrderTalent(wrappedTalent), true),
+			() => expectMatch(isHighOrderTalent(deeplyWrappedTalent), true),
+			() => expectMatch(unwrapTalent(deeplyWrappedTalent), wrappedTalent),
+			() => expectMatch(unwrapTalent(unwrapTalent(deeplyWrappedTalent)), talent),
+			() => expectMatch(unwrapTalentDeep(deeplyWrappedTalent), talent),
 		)
 	},
 })

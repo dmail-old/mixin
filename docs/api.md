@@ -4,8 +4,8 @@
 * [isProduct(value)](#isproductvalue)
 * [mixin(product, ...talents)](#mixinproduct-talents)
 * [hasTalent(talent, product)](#hastalenttalent-product)
-* [createFactory(talent)](#createfactorytalent)
-* [isProducedBy(factory, product)](#isproducedbyfactory-product)
+* [createFactory(product, talent)](#createfactoryproduct-talent)
+* [isProductOf(factory, product)](#isproductoffactory-product)
 * [replicate(product)](#replicateproduct)
 
 ## pure
@@ -61,14 +61,14 @@ hasTalent(talent, talentedProduct) // true
 
 [source](../src/mixin.js) | [test](../src/mixin.test.js)
 
-## createFactory(talent)
+## createFactory(product, talent)
 
 Returns a function which, when called, will return a talented product
 
 ```javascript
-import { createFactory } from "@dmail/mixin"
+import { createFactory, pure } from "@dmail/mixin"
 
-const createCounter = createFactory(({ count = 0 }) => {
+const createCounter = createFactory(pure, (count = 0) => {
 	const increment = () => {
 		count++
 		return count
@@ -77,22 +77,22 @@ const createCounter = createFactory(({ count = 0 }) => {
 	return { increment }
 })
 
-const counter = createCounter({ count: 1 })
+const counter = createCounter(1)
 counter.increment() // 2
 ```
 
 [source](../src/factory.js) | [test](../src/factory.test.js)
 
-## isProducedBy(factory, product)
+## isProductOf(factory, product)
 
 ```javascript
-import { isProducedBy, createFactory, pure } from "@dmail/mixin"
+import { isProductOf, createFactory, pure } from "@dmail/mixin"
 
 const factory = createFactory()
 const factoryProduct = factory()
 
-isProducedBy(factory, pure) // false
-isProducedBy(factory, factoryProduct) // true
+isProductOf(factory, pure) // false
+isProductOf(factory, factoryProduct) // true
 ```
 
 [source](../src/factory.js) | [test](../src/factory.test.js)
@@ -102,7 +102,7 @@ isProducedBy(factory, factoryProduct) // true
 ```javascript
 import { createFactory, replicate } from "@dmail/mixin"
 
-const createCounter = createFactory(({ count = 0 }) => {
+const createCounter = createFactory((count = 0) => {
 	const increment = () => {
 		count++
 		return count
@@ -113,7 +113,7 @@ const createCounter = createFactory(({ count = 0 }) => {
 	}
 })
 
-const counter = createCounter({ count: 10 })
+const counter = createCounter(10)
 counter.increment() // 11
 counter.increment() // 12
 const counterClone = replicate(counter)
@@ -130,7 +130,7 @@ Consequently if some talent functions behaves differently when reused, the resul
 #### Unpure talent example
 
 ```javascript
-import { miwin, pure, replicate } from "@dmail/mixin"
+import { mixin, pure, replicate } from "@dmail/mixin"
 
 const properties = {}
 const unpureTalent = () => properties
@@ -144,3 +144,20 @@ productCopy.foo // true
 ```
 
 Because of the mutation `productCopy` is not equivalent to `productModel`
+
+### Replicate expect no mutation on factory arguments
+
+Example of factory arguments mutation which make replicate fail.
+
+```javascript
+import { createFactory, replicate } from "@dmail/mixin"
+
+const factory = createFactory(pure, ({ value }) => ({ value }))
+const args = [{ value: 0 }]
+const productModel = factory(...args)
+args[0].value = 10
+const productCopy = replicate(productModel)
+
+productModel.value // 0
+productCopy.value // 10
+```
