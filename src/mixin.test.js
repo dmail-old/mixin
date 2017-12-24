@@ -5,93 +5,99 @@ import {
 	replicate,
 	hasTalent,
 	wrapTalent,
+	isHighOrderTalent,
 	unwrapTalent,
 	unwrapTalentDeep,
-	isHighOrderTalent,
 } from "./mixin.js"
 import { createTest } from "@dmail/test"
 import { expectMatch, matchNot, expectProperties, expectChain } from "@dmail/expect"
 
 export const test = createTest({
-	"pure is a non extensible obect": () => {
-		return expectMatch(Object.isExtensible(pure), false)
-	},
-	"mixin returns a new product": () => {
-		const product = mixin(pure, () => {})
-		return expectMatch(pure, matchNot(product))
-	},
-	"mixin return a non extensible object": () => {
-		const product = mixin(pure, () => {})
-		return expectMatch(Object.isExtensible(product), false)
-	},
-	"mixin return product with frozen property returned by talent": () => {
-		const method = () => {}
-		const product = mixin(pure, () => ({ method }))
-		const methodDescriptor = Object.getOwnPropertyDescriptor(product, "method")
-		return expectProperties(methodDescriptor, {
-			enumerable: false,
-			configurable: false,
-			writable: false,
-			value: method,
-		})
-	},
-	"mixin on talent returning null": () => {
-		return expectProperties(mixin(pure, () => null), {})
-	},
-	"mixin with talent returning existing property name": () => {
-		const firstMethod = () => {}
-		const secondMethod = () => {}
-		const product = mixin(pure, () => ({ foo: firstMethod }), () => ({ foo: secondMethod }))
-		return expectProperties(product, {
-			foo: secondMethod,
-		})
-	},
-	"mixin with talent returning existing property anonymous symbol": () => {
-		const firstMethod = () => {}
-		const secondMethod = () => {}
-		const propertySymbol = Symbol()
-		const product = mixin(
-			pure,
-			() => ({ [propertySymbol]: firstMethod }),
-			() => ({ [propertySymbol]: secondMethod }),
+	"pure caracteristics": () => {
+		return expectChain(
+			() => expectMatch(Object.isExtensible(pure), false),
+			() => expectMatch(isProduct(pure), true),
 		)
-		return expectProperties(product, {
-			[propertySymbol]: secondMethod,
-		})
 	},
-	// should also be tested with anonymous symbol & named symbol
-	// to check the produced error message
-	"mixin with talent returning something a boolean value for a property": () => {
-		return expectProperties(mixin(pure, () => ({ foo: true })), { foo: true })
+	"mixin called without talent": () => {
+		const input = pure
+		const output = mixin(input)
+		return expectChain(
+			() => expectMatch(output, matchNot(input)),
+			() => expectMatch(Object.isExtensible(output), false),
+			() => expectMatch(isProduct(output), true),
+		)
 	},
-	"isProduct() on pure": () => {
-		return expectMatch(isProduct(pure), true)
+	"mixin call with a talent returning a method": () => {
+		const method = () => {}
+		const talent = () => ({ method })
+		const output = mixin(pure, talent)
+
+		return expectChain(
+			() => expectMatch(Object.isExtensible(output), false),
+			() => expectMatch(isProduct(output), true),
+			() => expectMatch(hasTalent(talent, output), true),
+			() => {
+				return expectProperties(Object.getOwnPropertyDescriptor(output, "method"), {
+					enumerable: false,
+					configurable: false,
+					writable: false,
+					value: method,
+				})
+			},
+		)
 	},
-	"isProduct() on mixed pure product": () => {
-		return expectMatch(isProduct(mixin(pure, () => {})), true)
+	"mixin called with a talent returning null": () => {
+		const talent = () => null
+		const output = mixin(pure, talent)
+
+		return expectChain(
+			() => expectMatch(hasTalent(talent, output), true),
+			() => expectProperties(output, {}),
+		)
 	},
-	"isProduct(null)": () => {
-		return expectMatch(isProduct(null), false)
+	"mixin called with two talent using same property names": () => {
+		const firstTalent = () => ({ foo: true, bar: false })
+		const secondTalent = () => ({ foo: false })
+
+		const output = mixin(pure, firstTalent, secondTalent)
+		return expectChain(
+			() => expectMatch(hasTalent(firstTalent, output), true),
+			() => expectMatch(hasTalent(secondTalent, output), true),
+			() => expectMatch(output.foo, false),
+			() => expectMatch(output.bar, false),
+		)
 	},
-	"isProduct(undefined)": () => {
-		return expectMatch(isProduct(undefined), false)
+	"mixin called with two talent using same symbol": () => {
+		const symbol = Symbol()
+		const output = mixin(pure, () => ({ [symbol]: true }), () => ({ [symbol]: false }))
+		return expectProperties(output, { [symbol]: false })
 	},
-	"hasTalent()": () => {
+	"isProduct() called on non product": () => {
+		return expectChain(
+			() => expectMatch(isProduct(null), false),
+			() => expectMatch(isProduct(undefined), false),
+			() => expectMatch(isProduct({}), false),
+		)
+	},
+	"hasTalent() called on non product": () => {
 		const talent = () => {}
 
 		return expectChain(
 			() => expectMatch(hasTalent(talent, null), false),
 			() => expectMatch(hasTalent(talent, undefined), false),
 			() => expectMatch(hasTalent(talent, {}), false),
-			() => expectMatch(hasTalent(talent, pure), false),
-			() => expectMatch(hasTalent(talent, mixin(pure, talent)), true),
-			() => expectMatch(hasTalent(talent, mixin(pure, talent, () => {})), true),
 		)
 	},
 	"valueOf()": () => {
 		const talent = ({ valueOf }) => ({ self: valueOf() })
-		const product = mixin(pure, talent)
-		return expectMatch(product.self, product)
+		const output = mixin(pure, talent)
+		return expectMatch(output.self, output)
+	},
+	"lastValueOf()": () => {
+		const talent = ({ lastValueOf }) => ({ getLast: () => lastValueOf() })
+		const output = mixin(pure, talent, () => {})
+		return expectMatch(output.getLast(), output)
 	},
 	"replicate() a product with many talents": () => {
 		const zeroValueTalent = () => {
@@ -130,16 +136,10 @@ export const test = createTest({
 			},
 		)
 	},
-	"wrapTalent()": () => {
-		const value = {}
-		const talent = () => ({ value })
-		const wrappedTalent = wrapTalent(talent, () => talent())
-		return expectMatch(mixin(pure, wrappedTalent).value, value)
-	},
 	"talent wrapping and unwrapping": () => {
-		const talent = () => {}
-		const wrappedTalent = wrapTalent(talent, () => {})
-		const deeplyWrappedTalent = wrapTalent(wrappedTalent, () => {})
+		const talent = () => ({ foo: true })
+		const wrappedTalent = wrapTalent(talent, () => talent())
+		const deeplyWrappedTalent = wrapTalent(wrappedTalent, () => wrappedTalent())
 		return expectChain(
 			() => expectMatch(isHighOrderTalent(talent), false),
 			() => expectMatch(isHighOrderTalent(wrappedTalent), true),
@@ -147,6 +147,15 @@ export const test = createTest({
 			() => expectMatch(unwrapTalent(deeplyWrappedTalent), wrappedTalent),
 			() => expectMatch(unwrapTalent(unwrapTalent(deeplyWrappedTalent)), talent),
 			() => expectMatch(unwrapTalentDeep(deeplyWrappedTalent), talent),
+			() => {
+				const output = mixin(pure, wrappedTalent)
+				return expectChain(
+					() => expectProperties(output, { foo: true }),
+					() => expectMatch(hasTalent(talent, output), true),
+					() => expectMatch(hasTalent(wrappedTalent, output), true),
+					() => expectMatch(hasTalent(deeplyWrappedTalent, output), true),
+				)
+			},
 		)
 	},
 })

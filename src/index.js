@@ -4,7 +4,6 @@ import {
 	hasTalent as optimistHasTalent,
 	mixin as optimistMixin,
 	replicate as optimistReplicate,
-	isHighOrderTalent,
 } from "./mixin.js"
 import {
 	createFactory as optimistCreateFactory,
@@ -15,49 +14,56 @@ export { isProduct, pure }
 
 export const hasTalent = (firstArg, secondArg) => {
 	if (typeof firstArg !== "function") {
-		throw new TypeError(`unexpected hasTalent 1st argument: must be a function`)
+		throw new TypeError(`hasTalent first argument must be a function`)
 	}
+	if (isProduct(secondArg) === false) {
+		throw new TypeError(`hasTalent second arg must be a product`)
+	}
+
 	return optimistHasTalent(firstArg, secondArg)
 }
 
 export const mixin = (firstArg, ...remainingArgs) => {
 	if (isProduct(firstArg) === false) {
-		throw new TypeError(`unexpected mixin 1st argument: must be a product`)
+		throw new TypeError(`mixin first argument must be a product`)
 	}
 	remainingArgs.forEach((arg, index) => {
 		if (typeof arg !== "function") {
-			throw new TypeError(`unexpected mixin arg n°${index + 1}: must be function`)
+			throw new TypeError(`unexpected mixin n°${index + 1}: must be function`)
 		}
 	})
+
 	return optimistMixin(firstArg, ...remainingArgs)
 }
 
-export const createFactory = (firstArg, secondArg) => {
+export const createFactory = (firstArg, ...remainingArgs) => {
 	if (isProduct(firstArg) === false) {
 		throw new TypeError(`unexpected createFactory 1st argument: must be a product`)
 	}
-	if (typeof secondArg !== "function") {
-		throw new TypeError(`unexpected createFactory 2nd argument: must be a function`)
-	}
-	if (isHighOrderTalent(secondArg)) {
-		throw new TypeError(`unexpected createFactory 2nd argument: must not be an high order talent`)
-	}
-	return optimistCreateFactory(firstArg, secondArg)
+	remainingArgs.forEach((remainingArg, index) => {
+		if (typeof remainingArg !== "function") {
+			throw new TypeError(`unexpected createFactory arg n°${index + 1}: must be a function`)
+		}
+	})
+
+	return optimistCreateFactory(firstArg, ...remainingArgs)
 }
 
 export const isProductOf = (firstArg, secondArg) => {
 	if (typeof firstArg !== "function") {
-		throw new TypeError(`unexpected isProductOf 1st argument: must be a function`)
+		throw new TypeError(`unexpected isProductOf 1st arg, must be a function`)
 	}
-	if (isHighOrderTalent(firstArg) === false) {
-		throw new TypeError(`unexpected isProductOf 1st argument: must be a high order talent`)
+	if (isProduct(secondArg) === false) {
+		throw new TypeError(`unexpected isProductOf 2nd arg, must be a product`)
 	}
+
 	return optimistIsProductOf(firstArg, secondArg)
 }
 
 export const replicate = (firstArg) => {
 	if (isProduct(firstArg) === false) {
-		throw new TypeError(`unexpected replicate 1st argument: got ${firstArg}, it must be a product`)
+		throw new TypeError(`unexpected replicate first arg, must be a product`)
 	}
+
 	return optimistReplicate(firstArg)
 }

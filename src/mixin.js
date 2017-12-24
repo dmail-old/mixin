@@ -7,15 +7,6 @@ import { installProperties, hasOwnProperty, defineFrozenProperty } from "./helpe
 
 const talentSymbol = Symbol.for("talent")
 
-const createPureProduct = () => {
-	// should be Object.create(null), for now it's not well supported
-	// by my other libraries
-	const pureProduct = {}
-	defineFrozenProperty(pureProduct, talentSymbol, null)
-	Object.preventExtensions(pureProduct)
-	return pureProduct
-}
-
 const getModel = (product) => Object.getPrototypeOf(product)
 
 export const isProduct = (arg) => hasOwnProperty(arg, talentSymbol)
@@ -30,8 +21,6 @@ const createSelfAndModelIterable = (product) => {
 }
 
 export const getTalent = (product) => product[talentSymbol]
-
-export const pure = createPureProduct()
 
 export const someSelfOrModel = (product, predicate) => {
 	for (const selfOrModel of createSelfAndModelIterable(product)) {
@@ -56,38 +45,69 @@ export const unwrapTalent = (talent) => {
 }
 
 export const unwrapTalentDeep = (talent) => {
-	let unwrappedTalent = talent
-	let unwrapped
-	while ((unwrapped = unwrapTalent(unwrappedTalent))) {
-		unwrappedTalent = unwrapped
+	while (talent) {
+		const unwrappedTalent = unwrapTalent(talent)
+		if (unwrappedTalent) {
+			talent = unwrappedTalent
+		} else {
+			break
+		}
 	}
-	return unwrappedTalent
+	return talent
 }
-
-// export const hasOwnTalent = (talent, product) => {
-// 	return isProduct(product) && unwrapDeep(getTalent(product)) === unwrapDeep(talent)
-// }
 
 export const hasTalent = (talent, product) => {
 	const unwrappedTalent = unwrapTalentDeep(talent)
 	return someSelfOrModel(product, (selfOrModel) => {
-		return unwrapTalentDeep(getTalent(selfOrModel)) === unwrappedTalent
+		const productUnwrappedTalent = unwrapTalentDeep(getTalent(selfOrModel))
+		return productUnwrappedTalent === unwrappedTalent
 	})
 }
 
-const addTalent = (talent, product) => {
-	const talentedProduct = Object.create(product)
-	defineFrozenProperty(talentedProduct, "valueOf", () => talentedProduct)
-	const returnValue = talent(talentedProduct)
-	defineFrozenProperty(talentedProduct, talentSymbol, talent)
-	if (returnValue !== null && typeof returnValue === "object") {
-		installProperties(returnValue, talentedProduct)
+const addTalent = (talent, input) => {
+	const output = Object.create(input)
+
+	defineFrozenProperty(output, "valueOf", () => output)
+	let lastValueOf
+	if (hasOwnProperty(input, "lastValueOf")) {
+		lastValueOf = input.lastValueOf
+		lastValueOf.update(output)
+	} else {
+		let lastValue = output
+		lastValueOf = () => lastValue
+		lastValueOf.update = (value) => {
+			lastValue = value
+		}
 	}
-	Object.preventExtensions(talentedProduct)
-	return talentedProduct
+	defineFrozenProperty(output, "lastValueOf", lastValueOf)
+	defineFrozenProperty(output, talentSymbol, talent)
+
+	// talent is allowed to be null, it means
+	// we created an other object without a talent associated to this creation
+	if (talent) {
+		const returnValue = talent(output)
+		if (returnValue !== null && typeof returnValue === "object") {
+			installProperties(returnValue, output)
+		}
+	}
+
+	Object.preventExtensions(output)
+
+	return output
 }
 
+export const pure = addTalent(
+	null,
+	// should be null, (that would internall do Object.create(null))
+	// for now it's not well supported because some code does object.hasOwnProperty()
+	// to check some stuff so we pass {} for now
+	{},
+)
+
 export const mixin = (product, ...talents) => {
+	if (talents.length === 0) {
+		return addTalent(null, product)
+	}
 	return talents.reduce((accumulator, talent) => addTalent(talent, accumulator), product)
 }
 
@@ -95,9 +115,12 @@ const getTalents = (product) => {
 	const talents = []
 	for (const selfOrModel of createSelfAndModelIterable(product)) {
 		const talent = getTalent(selfOrModel)
-		if (talent) {
-			talents.unshift(talent)
-		}
+		// returns null talent as well
+		// so that replicate can create the exact same level of object delegation
+		// even if object without talent are "the same" than their prototype
+		// if (talent) {
+		talents.unshift(talent)
+		// }
 	}
 	return talents
 }

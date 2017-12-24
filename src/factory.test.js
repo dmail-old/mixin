@@ -1,24 +1,35 @@
 import { createFactory, isProductOf } from "./factory.js"
-import { pure, replicate, mixin } from "./mixin.js"
+import { pure, replicate, mixin, hasTalent } from "./mixin.js"
 import { createTest } from "@dmail/test"
-import { expectMatch, expectFunction, expectChain } from "@dmail/expect"
+import { expectMatch, expectFunction, expectChain, matchNot, expectProperties } from "@dmail/expect"
 
 export const test = createTest({
-	"createFactory(pure, fn) returns a function": () => {
-		const factory = createFactory(pure, () => {})
-		return expectFunction(factory)
+	"createFactory called without talent": () => {
+		const input = pure
+		const factory = createFactory(input)
+		return expectChain(
+			() => expectFunction(factory),
+			() => {
+				const output = factory(10)
+				return expectMatch(output, matchNot(input))
+			},
+		)
 	},
-	"createFactory(pure, fn) calling returned factory with an object": () => {
-		let passedObject
-		const factory = createFactory(pure, (arg) => {
-			passedObject = arg
-		})
-		const object = { foo: true }
-		factory(object)
+	"createFactory called with one talent": () => {
+		let talentArguments
+		const talent = (...args) => {
+			talentArguments = args
+			return { foo: true }
+		}
+		const factory = createFactory(pure, talent)
+		const object = {}
+		const args = [0, 1, object]
+		const output = factory(...args)
 
 		return expectChain(
-			() => expectMatch(passedObject.foo, true),
-			() => expectMatch(Object.isExtensible(passedObject), true),
+			() => expectProperties(talentArguments, args),
+			() => expectMatch(hasTalent(talent, output), true),
+			() => expectMatch(output.foo, true),
 			() => {
 				// you can still mutate original object (but should not do it)
 				object.bar = true
@@ -26,65 +37,58 @@ export const test = createTest({
 			},
 		)
 	},
-	// "calling returned factory with 1 argument which is not an object": () => {
-	// 	const factory = createFactory(pure, () => {})
-	// 	return expectThrowWith(
-	// 		() => factory(true),
-	// 		matchTypeErrorWith({
-	// 			message: "factory first argument must be an object",
-	// 		}),
-	// 	)
-	// },
-	// "calling factory with more than 2 argument": () => {
-	// 	const factory = createFactory(pure, () => {})
-	// 	return expectThrowWith(
-	// 		() => factory(true, true),
-	// 		matchErrorWith({
-	// 			message: "factory must be called with 1 or zero argument",
-	// 		}),
-	// 	)
-	// },
-	"createFactory can return properties which are set on return value": () => {
-		const method = () => {}
-		const factory = createFactory(pure, () => ({ method }))
-		const product = factory()
-		return expectMatch(product.method, method)
+	"createFactory called with 2 talent (or more)": () => {
+		let firstArgs
+		const firstTalent = (...args) => {
+			firstArgs = args
+			return { first: true }
+		}
+		let secondArgs
+		const secondTalent = (...args) => {
+			secondArgs = args
+			return { second: true }
+		}
+		const factory = createFactory(pure, firstTalent, secondTalent)
+		const args = [0, 1]
+		const output = factory(...args)
+
+		return expectChain(
+			() => expectProperties(firstArgs, args),
+			() => expectProperties(secondArgs, [output]),
+			() => expectMatch(output.first, true),
+			() => expectMatch(output.second, true),
+		)
 	},
 	"isProductOf on factory product, and other factoryProduct": () => {
-		const factory = createFactory(pure, () => {})
+		const expectTrue = ({ factory, product }) => {
+			return expectMatch(isProductOf(factory, product), true)
+		}
+		const expectFalse = ({ factory, product }) => {
+			return expectMatch(isProductOf(factory, product), false)
+		}
+
+		const factory = createFactory(pure)
 		const product = factory()
-		const otherFactory = createFactory(pure, () => {})
+		const nestedFactory = createFactory(product)
+		const otherFactory = createFactory(pure)
 		const otherProduct = otherFactory()
+
 		return expectChain(
-			() => expectMatch(isProductOf(factory, product), true),
-			() => expectMatch(isProductOf(factory, otherProduct), false),
-			() => expectMatch(isProductOf(otherFactory, product), false),
-			() => expectMatch(isProductOf(otherFactory, otherProduct), true),
-		)
-	},
-	"isProductOf on talent installed directly on product": () => {
-		const talent = () => {}
-		const factory = createFactory(pure, talent)
-		const factoryProduct = factory()
-		const remixedFactoryProduct = mixin(factoryProduct, () => {})
-		const mixedProduct = mixin(pure, talent)
-		const mixedDeepProduct = mixin(pure, () => {}, talent)
-		return expectChain(
-			() => expectMatch(isProductOf(factory, factoryProduct), true),
-			() => expectMatch(isProductOf(factory, remixedFactoryProduct), true),
-			() => expectMatch(isProductOf(factory, mixedProduct), false),
-			() => expectMatch(isProductOf(factory, mixedDeepProduct), false),
-		)
-	},
-	"createFactory nested()": () => {
-		const shared = {}
-		const sharedFactory = createFactory(pure, () => ({ shared }))
-		const own = {}
-		const factory = createFactory(sharedFactory(), () => ({ own }))
-		const product = factory()
-		return expectChain(
-			() => expectMatch(product.shared, shared),
-			() => expectMatch(product.own, own),
+			() => expectFalse({ factory, product: null }),
+			() => expectFalse({ factory, product: undefined }),
+			() => expectFalse({ factory, product: {} }),
+			() => expectFalse({ factory, product: true }),
+			() => expectFalse({ factory, product: pure }),
+			() => expectFalse({ factory, product: otherProduct }),
+			() => expectFalse({ factory: otherFactory, product }),
+			() => expectTrue({ factory, product }),
+			() => expectTrue({ factory: otherFactory, product: otherProduct }),
+			// you can mix product they still know their factory
+			() => expectTrue({ factory, product: mixin(product) }),
+			() => expectTrue({ factory, product: mixin(product, () => {}) }),
+			// // you can nest factory, they still know their factories
+			() => expectTrue({ factory, product: nestedFactory() }),
+			() => expectTrue({ factory: nestedFactory, product: nestedFactory() }),
 		)
 	},
 	"replicate on factory": () => {
