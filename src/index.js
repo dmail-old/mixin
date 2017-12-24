@@ -16,9 +16,6 @@ export const hasTalent = (firstArg, secondArg) => {
 	if (typeof firstArg !== "function") {
 		throw new TypeError(`hasTalent first argument must be a function`)
 	}
-	if (isProduct(secondArg) === false) {
-		throw new TypeError(`hasTalent second arg must be a product`)
-	}
 
 	return optimistHasTalent(firstArg, secondArg)
 }
