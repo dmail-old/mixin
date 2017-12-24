@@ -4,13 +4,13 @@
 * [isProduct(value)](#isproductvalue)
 * [mixin(product, ...talents)](#mixinproduct-talents)
 * [hasTalent(talent, product)](#hastalenttalent-product)
-* [createFactory(product, talent)](#createfactoryproduct-talent)
+* [createFactory(product, ...talents)](#createfactoryproduct-talents)
 * [isProductOf(factory, product)](#isproductoffactory-product)
 * [replicate(product)](#replicateproduct)
 
 ## pure
 
-An object without any talent
+An object without talent
 
 ```javascript
 import { pure } from "@dmail/mixin"
@@ -61,7 +61,7 @@ hasTalent(talent, talentedProduct) // true
 
 [source](../src/mixin.js) | [test](../src/mixin.test.js)
 
-## createFactory(product, talent)
+## createFactory(product, ...talents)
 
 Returns a function which, when called, will return a talented product
 
@@ -136,7 +136,7 @@ const properties = {}
 const unpureTalent = () => properties
 
 const productModel = mixin(pure, unpureTalent)
-properties.foo = true // mutate talent return value
+properties.foo = true
 const productCopy = replicate(productModel)
 
 productModel.foo // undefined
@@ -152,8 +152,9 @@ Example of factory arguments mutation which make replicate fail.
 ```javascript
 import { createFactory, replicate } from "@dmail/mixin"
 
-const factory = createFactory(pure, ({ value }) => ({ value }))
 const args = [{ value: 0 }]
+const factory = createFactory(pure, ({ value }) => ({ value }))
+
 const productModel = factory(...args)
 args[0].value = 10
 const productCopy = replicate(productModel)
