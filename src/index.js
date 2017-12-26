@@ -50,10 +50,6 @@ export const isProductOf = (firstArg, secondArg) => {
 	if (typeof firstArg !== "function") {
 		throw new TypeError(`unexpected isProductOf 1st arg, must be a function`)
 	}
-	if (isProduct(secondArg) === false) {
-		throw new TypeError(`unexpected isProductOf 2nd arg, must be a product`)
-	}
-
 	return optimistIsProductOf(firstArg, secondArg)
 }
 
