@@ -35,3 +35,4 @@ duck.fly() // duck fly
 
 * [API documentation](./docs/api.md)
 * [Talent documentation](./docs/talent.md)
+* [Product documentation](./docs/product.md)

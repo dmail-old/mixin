@@ -4,7 +4,7 @@
 * [isProduct(value)](#isproductvalue)
 * [mixin(product, ...talents)](#mixinproduct-talents)
 * [hasTalent(talent, product)](#hastalenttalent-product)
-* [createFactory(product, ...talents)](#createfactoryproduct-talents)
+* [createFactory(product, argumentsTalent, ...talents)](#createfactoryproduct-argumentstalent-talents)
 * [isProductOf(factory, product)](#isproductoffactory-product)
 * [replicate(product)](#replicateproduct)
 
@@ -61,9 +61,9 @@ hasTalent(talent, talentedProduct) // true
 
 [source](../src/mixin.js) | [test](../src/mixin.test.js)
 
-## createFactory(product, ...talents)
+## createFactory(product, argumentsTalent, ...talents)
 
-Returns a function which, when called, will return a talented product
+createFactory is very usefull to abstract usage of miwin behind a regular function
 
 ```javascript
 import { createFactory, pure } from "@dmail/mixin"
@@ -79,6 +79,32 @@ const createCounter = createFactory(pure, (count = 0) => {
 
 const counter = createCounter(1)
 counter.increment() // 2
+```
+
+### What is argumentsTalent ?
+
+createFactory introduce a special kind of talent.
+Instead of receive one argument, as a regular talent would, createFactory second argument receive raw factory arguments.
+When you need both arguments & product helpers such as `valueOf` & `lastValueOf` you can forward
+arguments to the next talent as shown below:
+
+```javascript
+import { createFactory, pure } from "@dmail/mixin"
+
+const factory = createFactory(
+	pure,
+	({ compare = (a, b) => a === b } = {}) => {
+		return { compare }
+	},
+	({ compare, lastValueOf }) => {
+		return { isSame: (other) => compare(other.lastValueOf(), lastValueOf()) }
+	},
+)
+
+const output = factory()
+const otherOutput = factory()
+
+output.isSame(otherOutput) // false
 ```
 
 [source](../src/factory.js) | [test](../src/factory.test.js)
