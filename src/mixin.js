@@ -7,26 +7,40 @@ import { installProperties, hasOwnProperty, defineFrozenProperty } from "./helpe
 
 const talentSymbol = Symbol.for("talent")
 
-const getModel = (product) => Object.getPrototypeOf(product)
+const getPrototype = (product) => Object.getPrototypeOf(product)
 
 export const isProduct = (arg) => hasOwnProperty(arg, talentSymbol)
 
-const createSelfAndModelIterable = (product) => {
-	const products = []
+const createSelfAndPrototypeIterable = (product) => {
+	const selfAndPrototypes = []
 	while (isProduct(product)) {
-		products.push(product)
-		product = getModel(product)
+		selfAndPrototypes.push(product)
+		product = getPrototype(product)
 	}
-	return products
+	return selfAndPrototypes
 }
 
 export const getTalent = (product) => product[talentSymbol]
 
-export const someSelfOrModel = (product, predicate) => {
-	for (const selfOrModel of createSelfAndModelIterable(product)) {
+export const someSelfOrPrototype = (product, predicate) => {
+	for (const selfOrModel of createSelfAndPrototypeIterable(product)) {
 		if (predicate(selfOrModel)) {
 			return true
 		}
+	}
+	return false
+}
+
+export const isComposedOf = (product, value) => {
+	if (!isProduct(value)) {
+		return false
+	}
+	let proto = getPrototype(value)
+	while (proto) {
+		if (proto === product) {
+			return true
+		}
+		proto = getPrototype(proto)
 	}
 	return false
 }
@@ -58,8 +72,8 @@ export const unwrapTalentDeep = (talent) => {
 
 export const hasTalent = (talent, product) => {
 	const unwrappedTalent = unwrapTalentDeep(talent)
-	return someSelfOrModel(product, (selfOrModel) => {
-		const productUnwrappedTalent = unwrapTalentDeep(getTalent(selfOrModel))
+	return someSelfOrPrototype(product, (selfOrPrototype) => {
+		const productUnwrappedTalent = unwrapTalentDeep(getTalent(selfOrPrototype))
 		return productUnwrappedTalent === unwrappedTalent
 	})
 }
@@ -113,8 +127,8 @@ export const mixin = (product, ...talents) => {
 
 const getTalents = (product) => {
 	const talents = []
-	for (const selfOrModel of createSelfAndModelIterable(product)) {
-		const talent = getTalent(selfOrModel)
+	for (const selfOrPrototype of createSelfAndPrototypeIterable(product)) {
+		const talent = getTalent(selfOrPrototype)
 		// returns null talent as well
 		// so that replicate can create the exact same level of object delegation
 		// even if object without talent are "the same" than their prototype

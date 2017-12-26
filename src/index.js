@@ -1,6 +1,7 @@
 import {
 	isProduct,
 	pure,
+	isComposedOf as optimistIsComposedOf,
 	hasTalent as optimistHasTalent,
 	mixin as optimistMixin,
 	replicate as optimistReplicate,
@@ -11,6 +12,13 @@ import {
 } from "./factory.js"
 
 export { isProduct, pure }
+
+export const isComposedOf = (firstArg, secondArg) => {
+	if (isProduct(firstArg) === false) {
+		throw new TypeError(`isComposedOf first argument must be a product`)
+	}
+	return optimistIsComposedOf(firstArg, secondArg)
+}
 
 export const hasTalent = (firstArg, secondArg) => {
 	if (typeof firstArg !== "function") {

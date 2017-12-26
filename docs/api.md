@@ -3,6 +3,7 @@
 * [pure](#pure)
 * [isProduct(value)](#isproductvalue)
 * [mixin(product, ...talents)](#mixinproduct-talents)
+* [isComposedOf(product, value)][#iscomposedofproduct-value]
 * [hasTalent(talent, product)](#hastalenttalent-product)
 * [createFactory(product, argumentsTalent, ...talents)](#createfactoryproduct-argumentstalent-talents)
 * [isProductOf(factory, product)](#isproductoffactory-product)
@@ -46,6 +47,22 @@ product.getAnswerOpposite() // -42
 ```
 
 [source](../src/mixin.js) | [test](../src/mixin.test.js)
+
+## isComposedOf(product, value)
+
+```javascript
+import { mixin, pure, isComposedOf } from "@dmail/mixin"
+
+const output = mixin(pure)
+const nextOutput = mixin(output)
+
+isComposedOf(pure, output) // true
+isComposedOf(pure, nextOutput) // true
+isComposedOf(output, nextOutput) // true
+
+isComposedOf(nextOutput, output) // false
+isComposedOf(output, pure) // false
+```
 
 ## hasTalent(talent, product)
 

@@ -1,6 +1,7 @@
 import {
 	pure,
 	isProduct,
+	isComposedOf,
 	mixin,
 	replicate,
 	hasTalent,
@@ -26,16 +27,19 @@ export const test = createTest({
 			() => expectMatch(output, matchNot(input)),
 			() => expectMatch(Object.isExtensible(output), false),
 			() => expectMatch(isProduct(output), true),
+			() => expectMatch(isComposedOf(input, output), true),
 		)
 	},
 	"mixin call with a talent returning a method": () => {
 		const method = () => {}
 		const talent = () => ({ method })
-		const output = mixin(pure, talent)
+		const input = pure
+		const output = mixin(input, talent)
 
 		return expectChain(
 			() => expectMatch(Object.isExtensible(output), false),
 			() => expectMatch(isProduct(output), true),
+			() => expectMatch(isComposedOf(input, output), true),
 			() => expectMatch(hasTalent(talent, output), true),
 			() => {
 				return expectProperties(Object.getOwnPropertyDescriptor(output, "method"), {
@@ -45,6 +49,17 @@ export const test = createTest({
 					value: method,
 				})
 			},
+		)
+	},
+	"mixin called on previous mixin output": () => {
+		const input = pure
+		const output = mixin(input)
+		const nextOutput = mixin(output)
+
+		return expectChain(
+			() => expectMatch(isProduct(nextOutput), true),
+			() => expectMatch(isComposedOf(output, nextOutput), true),
+			() => expectMatch(isComposedOf(input, nextOutput), true),
 		)
 	},
 	"mixin called with a talent returning null": () => {
