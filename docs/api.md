@@ -102,7 +102,7 @@ counter.increment() // 2
 
 createFactory introduce a special kind of talent.
 Instead of receive one argument, as a regular talent would, createFactory second argument receive raw factory arguments.
-When you need both arguments & product helpers such as `valueOf` & `lastValueOf` you can forward
+When you need both arguments & product helpers such as `getComposite` & `getLastComposite` you can forward
 arguments to the next talent as shown below:
 
 ```javascript
@@ -113,8 +113,8 @@ const factory = createFactory(
 	({ compare = (a, b) => a === b } = {}) => {
 		return { compare }
 	},
-	({ compare, lastValueOf }) => {
-		return { isSame: (other) => compare(other.lastValueOf(), lastValueOf()) }
+	({ compare, getComposite }) => {
+		return { isSame: (other) => compare(other.getComposite(), getComposite()) }
 	},
 )
 

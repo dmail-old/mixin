@@ -104,15 +104,18 @@ export const test = createTest({
 			() => expectMatch(hasTalent(talent, {}), false),
 		)
 	},
-	"valueOf()": () => {
-		const talent = ({ valueOf }) => ({ self: valueOf() })
-		const output = mixin(pure, talent)
-		return expectMatch(output.self, output)
+	"getComposite()": () => {
+		const output = mixin(pure)
+		return expectMatch(output.getComposite(), output)
 	},
-	"lastValueOf()": () => {
-		const talent = ({ lastValueOf }) => ({ getLast: () => lastValueOf() })
-		const output = mixin(pure, talent, () => {})
-		return expectMatch(output.getLast(), output)
+	"getLastComposite()": () => {
+		const output = mixin(pure)
+		const nextOutput = mixin(output)
+		const lastOutput = nextOutput
+		return expectChain(
+			() => expectMatch(output.getLastComposite(), lastOutput),
+			() => expectMatch(nextOutput.getLastComposite(), lastOutput),
+		)
 	},
 	"replicate() a product with many talents": () => {
 		const zeroValueTalent = () => {

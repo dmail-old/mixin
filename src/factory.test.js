@@ -101,8 +101,9 @@ export const test = createTest({
 			}
 		})
 		const product = factory(10)
-		product.setValue(5)
-		const clone = replicate(product)
-		return expectMatch(clone.getValue(), 10)
+		const nextProduct = mixin(product, () => ({ foo: true }))
+		nextProduct.setValue(5)
+		const clone = replicate(nextProduct)
+		return expectChain(() => expectMatch(clone.getValue(), 10), () => expectMatch(clone.foo, true))
 	},
 })

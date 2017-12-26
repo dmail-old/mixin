@@ -81,19 +81,19 @@ export const hasTalent = (talent, product) => {
 const addTalent = (talent, input) => {
 	const output = Object.create(input)
 
-	defineFrozenProperty(output, "valueOf", () => output)
-	let lastValueOf
-	if (hasOwnProperty(input, "lastValueOf")) {
-		lastValueOf = input.lastValueOf
-		lastValueOf.update(output)
+	defineFrozenProperty(output, "getComposite", () => output)
+	let getLastComposite
+	if (hasOwnProperty(input, "getLastComposite")) {
+		getLastComposite = input.getLastComposite
+		getLastComposite.update(output)
 	} else {
 		let lastValue = output
-		lastValueOf = () => lastValue
-		lastValueOf.update = (value) => {
+		getLastComposite = () => lastValue
+		getLastComposite.update = (value) => {
 			lastValue = value
 		}
 	}
-	defineFrozenProperty(output, "lastValueOf", lastValueOf)
+	defineFrozenProperty(output, "getLastComposite", getLastComposite)
 	defineFrozenProperty(output, talentSymbol, talent)
 
 	// talent is allowed to be null, it means
