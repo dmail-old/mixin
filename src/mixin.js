@@ -82,6 +82,17 @@ const addTalent = (talent, input) => {
 	const output = Object.create(input)
 
 	defineFrozenProperty(output, "getComposite", () => output)
+	defineFrozenProperty(output, talentSymbol, talent)
+
+	// talent is allowed to be null, it means
+	// we created an other object without a talent associated to this creation
+	if (talent) {
+		const returnValue = talent(output)
+		if (returnValue !== null && typeof returnValue === "object") {
+			installProperties(returnValue, output)
+		}
+	}
+
 	let getLastComposite
 	if (hasOwnProperty(input, "getLastComposite")) {
 		getLastComposite = input.getLastComposite
@@ -94,16 +105,6 @@ const addTalent = (talent, input) => {
 		}
 	}
 	defineFrozenProperty(output, "getLastComposite", getLastComposite)
-	defineFrozenProperty(output, talentSymbol, talent)
-
-	// talent is allowed to be null, it means
-	// we created an other object without a talent associated to this creation
-	if (talent) {
-		const returnValue = talent(output)
-		if (returnValue !== null && typeof returnValue === "object") {
-			installProperties(returnValue, output)
-		}
-	}
 
 	Object.preventExtensions(output)
 

@@ -110,11 +110,20 @@ export const test = createTest({
 	},
 	"getLastComposite()": () => {
 		const output = mixin(pure)
-		const nextOutput = mixin(output)
+		const nextOutput = mixin(output, ({ getLastComposite }) => {
+			return {
+				getLastCompositeResultDuringTalent: getLastComposite(),
+			}
+		})
 		const lastOutput = nextOutput
 		return expectChain(
 			() => expectMatch(output.getLastComposite(), lastOutput),
 			() => expectMatch(nextOutput.getLastComposite(), lastOutput),
+			// during talent execution getLastComposite returns composite - 1
+			// if a previous composite is using getLastComposite
+			// and the current talent is calling that method
+			// you prevent an infinite recursion between them
+			() => expectMatch(nextOutput.getLastCompositeResultDuringTalent, output),
 		)
 	},
 	"replicate() a product with many talents": () => {
