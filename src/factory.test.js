@@ -1,10 +1,10 @@
 import { createFactory, isProductOf } from "./factory.js"
 import { pure, replicate, mixin, hasTalent } from "./mixin.js"
-import { createTest } from "@dmail/test"
+import { plan } from "@dmail/test"
 import { expectMatch, expectFunction, expectChain, matchNot, expectProperties } from "@dmail/expect"
 
-export const test = createTest({
-	"createFactory called without talent": () => {
+export const test = plan("factory", ({ test }) => {
+	test("createFactory called without talent", () => {
 		const input = pure
 		const factory = createFactory(input)
 		return expectChain(
@@ -14,8 +14,9 @@ export const test = createTest({
 				return expectMatch(output, matchNot(input))
 			},
 		)
-	},
-	"createFactory called with one talent": () => {
+	})
+
+	test("createFactory called with one talent", () => {
 		let talentArguments
 		const talent = (...args) => {
 			talentArguments = args
@@ -36,8 +37,9 @@ export const test = createTest({
 				return expectMatch(object.bar, true)
 			},
 		)
-	},
-	"createFactory called with 2 talent (or more)": () => {
+	})
+
+	test("createFactory called with 2 talent (or more)", () => {
 		let firstArgs
 		const firstTalent = (...args) => {
 			firstArgs = args
@@ -58,8 +60,9 @@ export const test = createTest({
 			() => expectMatch(output.first, true),
 			() => expectMatch(output.second, true),
 		)
-	},
-	"isProductOf on factory product, and other factoryProduct": () => {
+	})
+
+	test("isProductOf on factory product, and other factoryProduct", () => {
 		const expectTrue = ({ factory, product }) => {
 			return expectMatch(isProductOf(factory, product), true)
 		}
@@ -90,8 +93,9 @@ export const test = createTest({
 			() => expectTrue({ factory, product: nestedFactory() }),
 			() => expectTrue({ factory: nestedFactory, product: nestedFactory() }),
 		)
-	},
-	"replicate on factory": () => {
+	})
+
+	test("replicate on factory", () => {
 		const factory = createFactory(pure, (value) => {
 			return {
 				setValue: (arg) => {
@@ -105,5 +109,5 @@ export const test = createTest({
 		nextProduct.setValue(5)
 		const clone = replicate(nextProduct)
 		return expectChain(() => expectMatch(clone.getValue(), 10), () => expectMatch(clone.foo, true))
-	},
+	})
 })
