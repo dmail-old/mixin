@@ -4,8 +4,7 @@
     "dist/**"
   ],
   "exclude": [
-    "dist/**/*.test.*",
-    "dist/src/index.js"
+    "dist/**/*.test.*"
   ],
   "extension": [
     ".jsx"

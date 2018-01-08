@@ -22,6 +22,4 @@ export const createFactory = (product, ...talents) => {
 	return factory
 }
 
-export const isProductOf = (factory, product) => {
-	return hasTalent(factory.talent, product)
-}
+export const isProductOf = (factory, product) => hasTalent(factory.talent, product)
