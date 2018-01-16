@@ -7,8 +7,9 @@ import {
 	replicate as optimistReplicate,
 } from "./mixin.js"
 import {
-	createFactory as optimistCreateFactory,
+	mark as optimistMark,
 	isProductOf as optimistIsProductOf,
+	createFactory as optimistCreateFactory,
 } from "./factory.js"
 
 export { isProduct, pure }
@@ -41,6 +42,20 @@ export const mixin = (firstArg, ...remainingArgs) => {
 	return optimistMixin(firstArg, ...remainingArgs)
 }
 
+export const mark = (firstArg) => {
+	if (typeof firstArg !== "function") {
+		throw new TypeError(`unexpected mark 1st arg, must be a function`)
+	}
+	return optimistMark(firstArg)
+}
+
+export const isProductOf = (firstArg, secondArg) => {
+	if (typeof firstArg !== "function") {
+		throw new TypeError(`unexpected isProductOf 1st arg, must be a function`)
+	}
+	return optimistIsProductOf(firstArg, secondArg)
+}
+
 export const createFactory = (firstArg, ...remainingArgs) => {
 	if (isProduct(firstArg) === false) {
 		throw new TypeError(`unexpected createFactory 1st argument: must be a product`)
@@ -52,13 +67,6 @@ export const createFactory = (firstArg, ...remainingArgs) => {
 	})
 
 	return optimistCreateFactory(firstArg, ...remainingArgs)
-}
-
-export const isProductOf = (firstArg, secondArg) => {
-	if (typeof firstArg !== "function") {
-		throw new TypeError(`unexpected isProductOf 1st arg, must be a function`)
-	}
-	return optimistIsProductOf(firstArg, secondArg)
 }
 
 export const replicate = (firstArg) => {

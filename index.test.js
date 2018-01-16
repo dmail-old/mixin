@@ -288,7 +288,7 @@ export const test = plan("api", ({ scenario, test }) => {
 
 		test("second talent called with product", () => {
 			const output = factory()
-			return expectProperties(secondArgs, [output])
+			return expectProperties(secondArgs, [Object.getPrototypeOf(output)])
 		})
 
 		test("first talent property installed", () => expectMatch(factory().first, true))

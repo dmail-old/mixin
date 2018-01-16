@@ -111,13 +111,7 @@ const addTalent = (talent, input) => {
 	return output
 }
 
-export const pure = addTalent(
-	null,
-	// should be null, (that would internall do Object.create(null))
-	// for now it's not well supported because some code does object.hasOwnProperty()
-	// to check some stuff so we pass {} for now
-	{},
-)
+export const pure = addTalent(null, {})
 
 export const mixin = (product, ...talents) => {
 	if (talents.length === 0) {
