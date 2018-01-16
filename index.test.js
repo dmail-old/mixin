@@ -184,7 +184,7 @@ export const test = plan("api", ({ scenario, test }) => {
 	// if a previous composite is using getLastComposite
 	// and the current talent is calling that method
 	// you prevent an infinite recursion between them
-	scenario("talent calling getLastComposite() sync", () => {
+	scenario("getLastComposite called during talent execution", () => {
 		test("getLastComposite available on first talent", () => {
 			const input = pure
 			const output = mixin(input, ({ getLastComposite }) => {
@@ -198,6 +198,29 @@ export const test = plan("api", ({ scenario, test }) => {
 			const talent = ({ getLastComposite }) => ({ value: getLastComposite() })
 			const output = mixin(input, talent)
 			return expectMatch(output.value, input)
+		})
+	})
+
+	scenario("getLastComposite called on input, intermediate and last", () => {
+		test("getLastComposite returns last", () => {
+			const input = pure
+			const intermediate = mixin(pure, () => ({ foo: true }))
+			const last = mixin(intermediate, () => ({ bar: true }))
+
+			return expectChain(
+				() => expectMatch(input.getLastComposite(), last),
+				() => expectMatch(intermediate.getLastComposite(), last),
+				() => expectMatch(last.getLastComposite(), last),
+				() => {
+					const otherIntermediate = mixin(input, () => {})
+					return expectChain(
+						() => expectMatch(input.getLastComposite(), otherIntermediate),
+						() => expectMatch(otherIntermediate.getLastComposite(), otherIntermediate),
+						() => expectMatch(intermediate.getLastComposite(), last),
+						() => expectMatch(last.getLastComposite(), last),
+					)
+				},
+			)
 		})
 	})
 

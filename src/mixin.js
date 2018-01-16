@@ -101,9 +101,9 @@ const addTalent = (talent, input) => {
 	}
 
 	getLastComposite.update(output)
-	if (hasOwnProperty(input, "getLastComposite")) {
-		input.getLastComposite.update(output)
-	}
+	someSelfOrPrototype(input, (selfOrProto) => {
+		selfOrProto.getLastComposite.update(output)
+	})
 	Object.preventExtensions(output)
 
 	return output
