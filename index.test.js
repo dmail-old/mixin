@@ -185,6 +185,14 @@ export const test = plan("api", ({ scenario, test }) => {
 	// and the current talent is calling that method
 	// you prevent an infinite recursion between them
 	scenario("talent calling getLastComposite() sync", () => {
+		test("getLastComposite available on first talent", () => {
+			const input = pure
+			const output = mixin(input, ({ getLastComposite }) => {
+				return { value: getLastComposite() }
+			})
+			return expectMatch(output.value, input)
+		})
+
 		test("getLastComposite is the current composite", () => {
 			const input = mixin(pure, () => ({ foo: true }))
 			const talent = ({ getLastComposite }) => ({ value: getLastComposite() })
