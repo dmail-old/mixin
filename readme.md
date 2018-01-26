@@ -4,7 +4,7 @@
 [![build](https://travis-ci.org/dmail/mixin.svg?branch=master)](http://travis-ci.org/dmail/mixin)
 [![codecov](https://codecov.io/gh/dmail/mixin/branch/master/graph/badge.svg)](https://codecov.io/gh/dmail/mixin)
 
-Object composition helpers
+Object composition helper
 
 ## Example
 
@@ -12,14 +12,18 @@ Object composition helpers
 import { mixin, pure } from "@dmail/mixin"
 
 const walkTalent = ({ name }) => {
+	const walk = () => `${name} walk`
+
 	return {
-		walk: () => `${name} walk`,
+		walk,
 	}
 }
 
 const flyTalent = ({ name }) => {
+	const fly = () => `${name} fly`
+
 	return {
-		fly: () => `${name} fly`,
+		fly,
 	}
 }
 
