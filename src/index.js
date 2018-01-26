@@ -2,17 +2,23 @@ import {
 	isProduct,
 	pure,
 	isComposedOf as optimistIsComposedOf,
+	compose as optimistCompose,
 	hasTalent as optimistHasTalent,
+	hasTalentOf as optimistHasTalentOf,
 	mixin as optimistMixin,
 	replicate as optimistReplicate,
 } from "./mixin.js"
-import {
-	mark as optimistMark,
-	isProductOf as optimistIsProductOf,
-	createFactory as optimistCreateFactory,
-} from "./factory.js"
 
 export { isProduct, pure }
+
+export const compose = (...args) => {
+	args.forEach((arg, index) => {
+		if (typeof arg !== "function") {
+			throw new TypeError(`unexpected compose arg n°${index + 1}: must be function`)
+		}
+	})
+	return optimistCompose(...args)
+}
 
 export const isComposedOf = (firstArg, secondArg) => {
 	if (isProduct(firstArg) === false) {
@@ -35,38 +41,11 @@ export const mixin = (firstArg, ...remainingArgs) => {
 	}
 	remainingArgs.forEach((arg, index) => {
 		if (typeof arg !== "function") {
-			throw new TypeError(`unexpected mixin n°${index + 1}: must be function`)
+			throw new TypeError(`unexpected mixin arg n°${index + 1}: must be function`)
 		}
 	})
 
 	return optimistMixin(firstArg, ...remainingArgs)
-}
-
-export const mark = (firstArg) => {
-	if (typeof firstArg !== "function") {
-		throw new TypeError(`unexpected mark 1st arg, must be a function`)
-	}
-	return optimistMark(firstArg)
-}
-
-export const isProductOf = (firstArg, secondArg) => {
-	if (typeof firstArg !== "function") {
-		throw new TypeError(`unexpected isProductOf 1st arg, must be a function`)
-	}
-	return optimistIsProductOf(firstArg, secondArg)
-}
-
-export const createFactory = (firstArg, ...remainingArgs) => {
-	if (isProduct(firstArg) === false) {
-		throw new TypeError(`unexpected createFactory 1st argument: must be a product`)
-	}
-	remainingArgs.forEach((remainingArg, index) => {
-		if (typeof remainingArg !== "function") {
-			throw new TypeError(`unexpected createFactory arg n°${index + 1}: must be a function`)
-		}
-	})
-
-	return optimistCreateFactory(firstArg, ...remainingArgs)
 }
 
 export const replicate = (firstArg) => {
@@ -75,4 +54,11 @@ export const replicate = (firstArg) => {
 	}
 
 	return optimistReplicate(firstArg)
+}
+
+export const hasTalentOf = (firstArg, secondArg) => {
+	if (isProduct(firstArg) === false) {
+		throw new TypeError(`hasTalentOf first argument must be a product`)
+	}
+	return optimistHasTalentOf(firstArg, secondArg)
 }

@@ -3,10 +3,9 @@
 * [pure](#pure)
 * [isProduct(value)](#isproductvalue)
 * [mixin(product, ...talents)](#mixinproduct-talents)
+* [compose(...talents)](#composetalents)
 * [isComposedOf(product, value)][#iscomposedofproduct-value]
 * [hasTalent(talent, product)](#hastalenttalent-product)
-* [createFactory(product, argumentsTalent, ...talents)](#createfactoryproduct-argumentstalent-talents)
-* [isProductOf(factory, product)](#isproductoffactory-product)
 * [replicate(product)](#replicateproduct)
 
 ## pure
@@ -17,8 +16,6 @@ An object without talent
 import { pure } from "@dmail/mixin"
 ```
 
-[source](../src/mixin.js) | [test](../src/mixin.test.js)
-
 ## isProduct(value)
 
 ```javascript
@@ -28,8 +25,6 @@ isProduct(null) // false
 isProduct({}) // false
 isProduct(pure) // true
 ```
-
-[source](../src/mixin.js) | [test](../src/mixin.test.js)
 
 ## mixin(product, ...talents)
 
@@ -46,7 +41,17 @@ product.getAnswer() // 42
 product.getAnswerOpposite() // -42
 ```
 
-[source](../src/mixin.js) | [test](../src/mixin.test.js)
+## compose(...talents)
+
+```javascript
+import { compose, pure } from "@dmail/mixin"
+
+const talent = compose(() => ({ a: true }), () => ({ b: true }))
+const output = mixin(pure, talent)
+
+output.a // true
+output.b // true
+```
 
 ## isComposedOf(product, value)
 
@@ -76,70 +81,6 @@ hasTalent(talent, pure) // false
 hasTalent(talent, talentedProduct) // true
 ```
 
-[source](../src/mixin.js) | [test](../src/mixin.test.js)
-
-## createFactory(product, argumentsTalent, ...talents)
-
-createFactory is very usefull to abstract usage of miwin behind a regular function
-
-```javascript
-import { createFactory, pure } from "@dmail/mixin"
-
-const createCounter = createFactory(pure, (count = 0) => {
-	const increment = () => {
-		count++
-		return count
-	}
-
-	return { increment }
-})
-
-const counter = createCounter(1)
-counter.increment() // 2
-```
-
-### What is argumentsTalent ?
-
-createFactory introduce a special kind of talent.
-Instead of receive one argument, as a regular talent would, createFactory second argument receive raw factory arguments.
-When you need both arguments & product helpers such as `getComposite` & `getLastComposite` you can forward
-arguments to the next talent as shown below:
-
-```javascript
-import { createFactory, pure } from "@dmail/mixin"
-
-const factory = createFactory(
-	pure,
-	({ compare = (a, b) => a === b } = {}) => {
-		return { compare }
-	},
-	({ compare, getComposite }) => {
-		return { isSame: (other) => compare(other.getComposite(), getComposite()) }
-	},
-)
-
-const output = factory()
-const otherOutput = factory()
-
-output.isSame(otherOutput) // false
-```
-
-[source](../src/factory.js) | [test](../src/factory.test.js)
-
-## isProductOf(factory, product)
-
-```javascript
-import { isProductOf, createFactory, pure } from "@dmail/mixin"
-
-const factory = createFactory()
-const factoryProduct = factory()
-
-isProductOf(factory, pure) // false
-isProductOf(factory, factoryProduct) // true
-```
-
-[source](../src/factory.js) | [test](../src/factory.test.js)
-
 ## replicate(product)
 
 ```javascript
@@ -163,8 +104,6 @@ const counterClone = replicate(counter)
 counterClone.increment() // 11
 ```
 
-[source](../src/mixin.js) | [test](../src/mixin.test.js)
-
 ### Replicate expect talents to be pure functions
 
 To replicate a product, replicate will reuse talents.
@@ -187,21 +126,3 @@ productCopy.foo // true
 ```
 
 Because of the mutation `productCopy` is not equivalent to `productModel`
-
-### Replicate expect no mutation on factory arguments
-
-Example of factory arguments mutation which make replicate fail.
-
-```javascript
-import { createFactory, replicate } from "@dmail/mixin"
-
-const args = [{ value: 0 }]
-const factory = createFactory(pure, ({ value }) => ({ value }))
-
-const productModel = factory(...args)
-args[0].value = 10
-const productCopy = replicate(productModel)
-
-productModel.value // 0
-productCopy.value // 10
-```
