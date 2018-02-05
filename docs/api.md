@@ -4,7 +4,7 @@
 * [isProduct(value)](#isproductvalue)
 * [mixin(product, ...talents)](#mixinproduct-talents)
 * [compose(...talents)](#composetalents)
-* [isComposedOf(product, value)][#iscomposedofproduct-value]
+* [isComposedOf(product, value)](#iscomposedofproduct-value)
 * [hasTalent(talent, product)](#hastalenttalent-product)
 * [replicate(product)](#replicateproduct)
 
